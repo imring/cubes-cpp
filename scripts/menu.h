@@ -47,8 +47,8 @@ namespace menu {
     }
 
     void draw_ip_and_port(SDL_Renderer *ren, string ipAddress, string port, Font *font) {
-        font->render(ren, ipAddress, 350, 280, NULL);
-        font->render(ren, port, 350, 330, NULL);
+        font->render(ren, "ADDRESS: " + ipAddress, 50, 230, NULL);
+        font->render(ren, "PORT: " + port, 50, 280, NULL);
     }
 
     int host_menu(SDL_Renderer *ren, string *playerName, Font *font) {
@@ -138,7 +138,7 @@ namespace menu {
         SDL_Event e;
         int currentOption = 0;
         vector<string> options = {"ADDRESS: ", "PORT: ", "NAME: ", "CONNECT", "BACK"};
-        vector<string> optionsAddOns = {"", "", "", "", ""};
+        vector<string> optionsAddOns = {*ADDRESS, *PORT, *NAME, "", ""};
 
         int fTime = 1000 / 60, fDelta = 0;
         long int fStart, fEnd;

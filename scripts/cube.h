@@ -11,6 +11,7 @@
 #include "bullet.h"
 #include <SFML/Network.hpp>
 #include <string>
+#include <algorithm>
 
 
 using sf::IpAddress;
@@ -52,7 +53,7 @@ class Player {
             else {this->rPressed = true;}
         }
 
-        void update(int xbutton, int ybutton, vector<Bullet> *bullets) {
+        void update(int xbutton, int ybutton, vector<Bullet> *bullets, vector<Player> &players) {
             if (this->shot_timer > 0) {
                 this->shot_timer --;
             }
@@ -106,6 +107,7 @@ class Player {
             }
 
             this->collide_wall();
+            this->collide(players);
 
             this->rect.x += round(this->xspeed);
             this->rect.y += round(this->yspeed);
@@ -157,6 +159,58 @@ class Player {
             }
             if (this->rect.y <= 0) {
                 this->yspeed = abs(this->yspeed);
+            }
+        }
+
+        void collide(vector<Player> &players) {
+            for (auto &player: players) {
+                if (player.port != this->port) {
+                    SDL_Rect tempRect;
+                    if (SDL_IntersectRect(&player.rect, &this->rect, &tempRect) == SDL_TRUE) {
+                        int max_w = max(player.rect.x + player.rect.w - this->rect.x, this->rect.x + this->rect.w - player.rect.x);
+                        int max_h = max(player.rect.y + player.rect.h - this->rect.y, this->rect.y + this->rect.h - player.rect.y);
+                        if (max_w > max_h) {
+                            if (abs(this->rect.x + this->rect.w - player.rect.x) < abs(player.rect.x + player.rect.w - this->rect.x)) {
+                                this->rect.x = player.rect.x - this->rect.w;
+                                this->xspeed = -abs(abs(this->xspeed) + abs(player.xspeed)) / 2;
+                                player.xspeed = abs(abs(this->xspeed) + abs(player.xspeed)) / 2;
+                                if (this->rect.x < 0) {
+                                    this->rect.x = 0;
+                                    player.rect.x = this->rect.w;
+                                }
+                            }
+                            else if (abs(this->rect.x + this->rect.w - player.rect.x) > abs(player.rect.x + player.rect.w - this->rect.x)) {
+                                this->rect.x = player.rect.x + player.rect.w;
+                                this->xspeed = abs(abs(this->xspeed) + abs(player.xspeed)) / 2;
+                                player.xspeed = -abs(abs(this->xspeed) + abs(player.xspeed)) / 2;
+                                if (this->rect.x + this->rect.w > 640) {
+                                    this->rect.x = 640 - this->rect.w;
+                                    player.rect.x = this->rect.x - player.rect.w;
+                                }
+                            }
+                        }
+                        else if (max_h > max_w) {
+                            if (abs(this->rect.y + this->rect.h - player.rect.y) < abs(player.rect.y + player.rect.h - this->rect.y)) {
+                                this->rect.y = player.rect.y - this->rect.h;
+                                this->yspeed = -abs(abs(this->yspeed) + abs(player.yspeed)) / 2;
+                                player.yspeed = abs(abs(this->yspeed) + abs(player.yspeed)) / 2;
+                                if (this->rect.y < 0) {
+                                    this->rect.y = 0;
+                                    player.rect.y = this->rect.h;
+                                }
+                            }
+                            else if (abs(this->rect.y + this->rect.h - player.rect.y) > abs(player.rect.y + player.rect.h - this->rect.y)) {
+                                this->rect.y = player.rect.y + player.rect.h;
+                                this->yspeed = abs(abs(this->yspeed) + abs(player.yspeed)) / 2;
+                                player.yspeed = -abs(abs(this->yspeed) + abs(player.yspeed)) / 2;
+                                if (this->rect.y + this->rect.h > 480) {
+                                    this->rect.y = 480 - this->rect.h;
+                                    player.rect.y = this->rect.y - player.rect.h;
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
