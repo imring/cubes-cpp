@@ -1,0 +1,2 @@
+# cubes-cpp
+Cubes game
