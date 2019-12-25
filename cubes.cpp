@@ -121,7 +121,7 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
                 }
                 if (e.key.keysym.sym == SDLK_RETURN) {
                     if (currentOption == 0) {
-                        if (checkReadyPlayers(players)){
+                        if (checkReadyPlayers(players) && players.size() > 1){
                             run = false;
                         }
                     }
