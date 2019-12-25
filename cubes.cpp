@@ -1,4 +1,3 @@
-#include <sys/socket.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <SFML/Network.hpp>
