@@ -26,6 +26,8 @@ class Player {
         bool dead = false;
         string name;
         int triedToConn = 0;
+        bool rPressed = false;
+        bool enterPressed = false;
 
 
         Player(int x, int y, int port, IpAddress address, string name) {
@@ -43,6 +45,11 @@ class Player {
             this->port = port;
             this->address = address;
             this->name = name;
+        }
+
+        void togleReady() {
+            if (this->rPressed) {this->rPressed = false;}
+            else {this->rPressed = true;}
         }
 
         void update(int xbutton, int ybutton, vector<Bullet> *bullets) {
@@ -177,6 +184,7 @@ class Player {
             SDL_Rect rect = {x, y, 40, 40};
             SDL_RenderFillRect(ren, &rect);
             this->draw_name(ren, nameFont, rect);
+            this->draw_ready_in_menu(ren, nameFont, rect);
         }
 
         void draw_name(SDL_Renderer *ren, TTF_Font *nameFont, SDL_Rect rect) {
@@ -201,7 +209,39 @@ class Player {
             SDL_RenderCopy(ren, nameTexture, NULL, &nameRect);
             SDL_FreeSurface(tempSurface);
             tempSurface = NULL;
-        }   
+        }
+
+        void draw_ready_in_menu(SDL_Renderer *ren, TTF_Font *nameFont, SDL_Rect rect) {
+            if (nameFont == NULL) {
+                cout << SDL_GetError() << endl;
+            }
+            SDL_Color nameColor = {(Uint8)this->color[0], (Uint8)this->color[1], (Uint8)this->color[2]};
+
+            SDL_Surface *tempSurface;
+            if (this->rPressed) {
+                tempSurface = TTF_RenderText_Blended(nameFont, "READY", nameColor);
+            }
+            else {
+                SDL_Color tempColor = {120, 120, 120};
+                tempSurface = TTF_RenderText_Blended(nameFont, "NOT READY", tempColor);
+            }
+            
+            if (tempSurface == NULL) {
+                cout << "ERROR: " << SDL_GetError() << " " << TTF_GetError() << endl;
+            }
+            nameTexture = SDL_CreateTextureFromSurface(ren, tempSurface);
+            if (nameTexture == NULL) {
+                cout << "Error: " << SDL_GetError() << endl;
+            }
+
+            SDL_Rect nameRect;
+            nameRect.x = rect.x + (rect.w / 2) - (tempSurface->w / 2);
+            nameRect.y = rect.y + rect.h + 5;
+            nameRect.w = tempSurface->w; nameRect.h = tempSurface->h;
+            SDL_RenderCopy(ren, nameTexture, NULL, &nameRect);
+            SDL_FreeSurface(tempSurface);
+            tempSurface = NULL;
+        }
 
         void die() {
             this->dead = true;

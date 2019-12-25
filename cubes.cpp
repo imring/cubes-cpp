@@ -69,12 +69,9 @@ void quit() {
     SDL_Quit();
 }
 
-int HOST(string playerName) {
-    UdpSocket socket;
-    socket.bind(Socket::AnyPort);
-    socket.setBlocking(false);
+int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
     IpAddress ADDRESS = IpAddress::getLocalAddress();
-    unsigned short PORT = socket.getLocalPort();
+    unsigned short PORT = socket->getLocalPort();
     
     SDL_Event e;
 
@@ -106,6 +103,7 @@ int HOST(string playerName) {
         fStart = SDL_GetTicks();
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
+                *playAgain = false;
                 return -1;
             }
             if (e.type == SDL_KEYDOWN) {
@@ -123,14 +121,21 @@ int HOST(string playerName) {
                 }
                 if (e.key.keysym.sym == SDLK_RETURN) {
                     if (currentOption == 0) {
-                        run = false;
+                        if (checkReadyPlayers(players)){
+                            run = false;
+                        }
                     }
                     if (currentOption == 1) {
+                        *playAgain = false;
                         return 0;
                     }
                 }
                 if (e.key.keysym.sym == SDLK_ESCAPE) {
+                    *playAgain = false;
                     return 0;
+                }
+                if (e.key.keysym.sym == SDLK_r) {
+                    players[0].togleReady();
                 }
             }
          }
@@ -139,31 +144,43 @@ int HOST(string playerName) {
         int additionalIter = 0;
         int pNum = 0;
         while (pNum < players.size() + 1 + additionalIter) {
-            if (socket.receive(pData, 2048, received, pAddr, pPort) != Socket::NotReady) {
+            if (socket->receive(pData, 2048, received, pAddr, pPort) != Socket::NotReady) {
                 if (pData[0] == 'n') {
-                    string name;
-                    for (int i = 1; i < strlen(pData); i++) {
-                        name = name + pData[i];
+                    if (getPlayerIndex(players, pPort) == -1) {
+                        string name;
+                        for (int i = 1; i < strlen(pData); i++) {
+                            name = name + pData[i];
+                        }
+                        if (players.size() <= 5) {
+                            players.push_back(Player(random(10, 590), random(10, 430), pPort, pAddr, name));
+                            socket->send("HELLO", 2048, pAddr, pPort);
+                            additionalIter++;
+                        }
+                        else {
+                            socket->send("GAME STARTED", 2048, pAddr, pPort);
+                            additionalIter++;
+                        }
                     }
-                    if (players.size() <= 5) {
-                        players.push_back(Player(random(10, 590), random(10, 430), pPort, pAddr, name));
-                        socket.send("HELLO", 2048, pAddr, pPort);
-                        additionalIter++;
-                    }
-                    else {
-                        socket.send("GAME STARTED", 2048, pAddr, pPort);
-                        additionalIter++;
-                    }
+                    
                     
                 }
                 if ((string)pData == "GOOD BYE") {
                     int playerNum = getPlayerIndex(players, pPort);
-                    players.erase(players.begin() + playerNum);
+                    if (playerNum < players.size() && playerNum >= 0) {
+                        players.erase(players.begin() + playerNum);
+                    }
+                    
                 }
                 if ((string)pData == "I AM HERE") {
                     ports.push_back((int)pPort);
                     int playerNum = getPlayerIndex(players, pPort);
                     players[playerNum].triedToConn = 0;
+                }
+                if ((string)pData == "R PRESSED") {
+                    ports.push_back((int)pPort);
+                    int playerNum = getPlayerIndex(players, pPort);
+                    players[playerNum].triedToConn = 0;
+                    players[playerNum].togleReady();
                 }
             }
             pNum ++;
@@ -174,7 +191,9 @@ int HOST(string playerName) {
             if (pN == -1) {
                 players[p].triedToConn++;
                 if (players[p].triedToConn >= 300) {
-                    players.erase(players.begin() + p);
+                    if (p < players.size() && p >= 0) {
+                        players.erase(players.begin() + p);
+                    }
                 }
             }
             else {
@@ -191,13 +210,14 @@ int HOST(string playerName) {
                 {"color1", player.color[0]},
                 {"color2", player.color[1]},
                 {"color3", player.color[2]},
-                {"name", player.name}
+                {"name", player.name},
+                {"ready", player.rPressed}
             };
             sjData["players"].push_back(jData);
         }
         sData = sjData.dump();
         for (int i = 1; i < players.size(); i++) {
-            socket.send(sData.c_str(), 2048, players[i].address, players[i].port);
+            socket->send(sData.c_str(), 2048, players[i].address, players[i].port);
         }
 
         SDL_SetRenderDrawColor(ren, 20, 20, 20, 255);
@@ -205,6 +225,7 @@ int HOST(string playerName) {
         menu::draw_player_in_menu(ren, players, nameFont);
         menu::draw_ip_and_port(ren, ADDRESS.toString(), to_string(PORT), menuOptionFont);
         menu::draw_options(ren, options, optionsAddOns, currentOption, menuOptionFont);
+        menuOptionFont->render(ren, "Press \"R\" when you're ready", 50, 220, NULL);
 
         SDL_RenderPresent(ren);
         fEnd = SDL_GetTicks();
@@ -215,7 +236,7 @@ int HOST(string playerName) {
     }
 
     for (int pl = 1; pl < players.size(); pl++) {
-        socket.send("START GAME", 2048, players[pl].address, players[pl].port);
+        socket->send("START GAME", 2048, players[pl].address, players[pl].port);
     }
     run = true;
 
@@ -223,12 +244,15 @@ int HOST(string playerName) {
         p.triedToConn = 0;
     }
 
+    bool canPressEnter = false;
+
     while (run) {
         fStart = SDL_GetTicks();
         ports.clear();
 
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
+                *playAgain = false;
                 return -1;
             }
             if (e.type == SDL_KEYDOWN) {
@@ -245,6 +269,11 @@ int HOST(string playerName) {
                     lpr = true;
                 }
                 if (e.key.keysym.sym == SDLK_ESCAPE) {
+                    *playAgain = false;
+                    return 0;
+                }
+                if (e.key.keysym.sym == SDLK_RETURN && canPressEnter) {
+                    *playAgain = true;
                     return 0;
                 }
             }
@@ -311,20 +340,30 @@ int HOST(string playerName) {
         }
         int additionalIter = 0;
         while (pIndex < players.size()+1+additionalIter) {
-            if (socket.receive(rData, 2048, received, rAddr, rPort) == Socket::NotReady) {}
+            if (socket->receive(rData, 2048, received, rAddr, rPort) == Socket::NotReady) {}
             else {
                 if (rData[0] == 'n') {
-                    string name;
-                    for (int i = 1; i < strlen(rData); i++) {
-                        name = name + rData[i];
-                    }
-                    socket.send("GAME STARTED", 2048, rAddr, rPort);
-                    additionalIter++;
+                    if (getPlayerIndex(players, rPort) == -1) {
+                        string name;
+                        for (int i = 1; i < strlen(rData); i++) {
+                            name = name + rData[i];
+                        }
+                        socket->send("GAME STARTED", 2048, rAddr, rPort);
+                        additionalIter++;
+                    } 
                 }
-                else if ((string)rData == "I AM HERE") {}
+                else if ((string)rData == "I AM HERE" || (string)rData == "R PRESSED") {additionalIter++;}
                 else if ((string)rData == "GOOD BYE") {
                     int playerNum = getPlayerIndex(players, rPort);
-                    players.erase(players.begin()+playerNum);
+                    if (playerNum < players.size() && playerNum >= 0) {
+                        players.erase(players.begin()+playerNum);
+                    }
+                }
+                else if ((string)rData == "ENTER PRESSED") {
+                    int playerNum = getPlayerIndex(players, rPort);
+                    if (playerNum != -1) {
+                        players[playerNum].enterPressed = true;
+                    }
                 }
                 else {
                     json jData = json::parse(rData);
@@ -344,11 +383,14 @@ int HOST(string playerName) {
 
         for (int p = 1; p < players.size(); p++) {
             int pN = findPort(ports, players[p].port);
-            if (pN == -1) {
+            if (pN == -1 && players[p].enterPressed == false) {
                 players[p].triedToConn++;
                 players[p].update(0, 0, &bullets);
                 if (players[p].triedToConn >= 300) {
-                    players.erase(players.begin() + p);
+                    if (p < players.size() && p >= 0) {
+                        players.erase(players.begin() + p);
+                    }
+                    
                 }
             }
             else {
@@ -379,7 +421,8 @@ int HOST(string playerName) {
                 {"color1", player.color[0]},
                 {"color2", player.color[1]},
                 {"color3", player.color[2]},
-                {"name", player.name}
+                {"name", player.name},
+                {"dead", player.dead}
             };
             sjData["players"].push_back(pData);
         }
@@ -396,7 +439,7 @@ int HOST(string playerName) {
         }
         sData = sjData.dump();
         for (int player = 1; player < players.size(); player++) {
-            if (socket.send(sData.c_str(), 2048, players[player].address, players[player].port) != Socket::Done) {
+            if (socket->send(sData.c_str(), 2048, players[player].address, players[player].port) != Socket::Done) {
                 cout << "Can't send data to: " << players[player].address << endl;
             }
         }
@@ -411,6 +454,12 @@ int HOST(string playerName) {
             player.draw(ren, nameFont);
         }
 
+        if (checkWinner(players)) {
+            canPressEnter = true;
+            menuOptionFont->render(ren, getWinner(players) + " WON", 20, 480 - 100, NULL);
+            menuOptionFont->render(ren, "PRESS ENTER TO PLAY AGAIN", 20, 480 - 50, NULL);
+        }
+
         SDL_RenderPresent(ren);
 
         fEnd = SDL_GetTicks();
@@ -423,17 +472,11 @@ int HOST(string playerName) {
     return 0;
 }
 
-int CLIENT(string addr, string port, string name) {
+int CLIENT(string addr, string port, string name, UdpSocket *socket, string *playAgainAddress, string *playAgainPort, bool *playAgain) {
     IpAddress ADDRESS = addr;
     unsigned int PORT = stoi(port);
-    UdpSocket socket;
-
-    if (socket.bind(Socket::AnyPort) != Socket::Done) {
-        cout << "Can't bind socket" << endl;
-    }
-    socket.setBlocking(false);
     name = "n" + name;
-    socket.send(name.c_str(), 2048, ADDRESS, PORT);
+    socket->send(name.c_str(), 2048, ADDRESS, PORT);
     char rData[2048];
     size_t received;
     IpAddress rAddr;
@@ -449,17 +492,20 @@ int CLIENT(string addr, string port, string name) {
         fStart = SDL_GetTicks();
         while (SDL_PollEvent(&e) != 0) {
             if (e.type == SDL_QUIT) {
+                *playAgain = false;
                 return -1;
             }
             if (e.type == SDL_KEYDOWN) {
                 if (e.key.keysym.sym == SDLK_ESCAPE) {
+                    *playAgain = false;
                     return 0;
                 }
             }
         }
 
-        if (socket.receive(rData, 2048, received, rAddr, rPort) != Socket::NotReady) {
+        if (socket->receive(rData, 2048, received, rAddr, rPort) != Socket::NotReady) {
             if ((string)rData == "GAME STARTED") {
+                *playAgain = false;
                 return 0;
             }
             if ((string)rData == "HELLO") {
@@ -468,6 +514,7 @@ int CLIENT(string addr, string port, string name) {
         }
         else {
             triedToConn++;
+            socket->send(name.c_str(), 2048, ADDRESS, PORT);
         }
 
         SDL_SetRenderDrawColor(ren, 20, 20, 20, 255);
@@ -493,31 +540,44 @@ int CLIENT(string addr, string port, string name) {
     int currentOption = 0;
     vector<string> options = {"BACK"};
     vector<string> optionsAddOns = {""};
+    bool rPressed = false;
 
     while (run) {
+        rPressed = false;
         fStart = SDL_GetTicks();
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
-                socket.send("GOOD BYE", 2048, ADDRESS, PORT);
+                socket->send("GOOD BYE", 2048, ADDRESS, PORT);
+                *playAgain = false;
                 return -1;
             }
             if (e.type == SDL_KEYDOWN) {
                 if (e.key.keysym.sym == SDLK_RETURN) {
-                    socket.send("GOOD BYE", 2048, ADDRESS, PORT);
+                    socket->send("GOOD BYE", 2048, ADDRESS, PORT);
+                    *playAgain = false;
                     return 0;
                 }
                 if (e.key.keysym.sym == SDLK_ESCAPE) {
-                    socket.send("GOOD BYE", 2048, ADDRESS, PORT);
+                    socket->send("GOOD BYE", 2048, ADDRESS, PORT);
+                    *playAgain = false;
                     return 0;
+                }
+                if (e.key.keysym.sym == SDLK_r) {
+                    rPressed = true;
                 }
             }
         }
 
         SDL_SetRenderDrawColor(ren, 20, 20, 20, 255);
         SDL_RenderClear(ren);
-
-        socket.send("I AM HERE", 2048, ADDRESS, PORT);
-        if (socket.receive(rData, 2048, received, rAddr, rPort) != Socket::NotReady) {
+        if (!rPressed) {
+            socket->send("I AM HERE", 2048, ADDRESS, PORT);
+        }
+        else {
+            socket->send("R PRESSED", 2048, ADDRESS, PORT);
+        }
+        
+        if (socket->receive(rData, 2048, received, rAddr, rPort) != Socket::NotReady) {
             if ((string)rData == "START GAME") {
                 run = false;
             }
@@ -529,6 +589,7 @@ int CLIENT(string addr, string port, string name) {
                     players[players.size() - 1].color[0] = pl["color1"];
                     players[players.size() - 1].color[1] = pl["color2"];
                     players[players.size() - 1].color[2] = pl["color2"];
+                    players[players.size() - 1].rPressed = pl["ready"];
                 }
             }
         }
@@ -541,6 +602,7 @@ int CLIENT(string addr, string port, string name) {
 
         menu::draw_player_in_menu_client(ren, players, nameFont);
         menu::draw_options(ren, options, optionsAddOns, 0, menuOptionFont);
+        menuOptionFont->render(ren, "Press \"R\" when you're ready", 50, 370, NULL);
         SDL_RenderPresent(ren);
 
         fEnd = SDL_GetTicks();
@@ -554,6 +616,7 @@ int CLIENT(string addr, string port, string name) {
     run = true;
     triedToConn = 0;
     vector<Bullet> bullets;
+    bool canPressEnter = false;
 
 
     while (run) {
@@ -561,7 +624,8 @@ int CLIENT(string addr, string port, string name) {
 
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
-                socket.send("GOOD BYE", 2048, ADDRESS, PORT);
+                socket->send("GOOD BYE", 2048, ADDRESS, PORT);
+                *playAgain = false;
                 return -1;
             }
             if (e.type == SDL_KEYDOWN) {
@@ -578,7 +642,15 @@ int CLIENT(string addr, string port, string name) {
                     lpr = true;
                 }
                 if (e.key.keysym.sym == SDLK_ESCAPE) {
-                    socket.send("GOOD BYE", 2048, ADDRESS, PORT);
+                    socket->send("GOOD BYE", 2048, ADDRESS, PORT);
+                    *playAgain = false;
+                    return 0;
+                }
+                if (e.key.keysym.sym == SDLK_RETURN && canPressEnter) {
+                    *playAgainAddress = addr;
+                    *playAgainPort = port;
+                    *playAgain = true;
+                    socket->send("ENTER PRESSED", 2048, ADDRESS, PORT);
                     return 0;
                 }
             }
@@ -632,6 +704,7 @@ int CLIENT(string addr, string port, string name) {
             }
         }
         if (run == false) {
+            *playAgain = false;
             return 0;
         }
 
@@ -643,13 +716,13 @@ int CLIENT(string addr, string port, string name) {
             {"mp2", mPos[1]}
         };
         string sData = jsData.dump();
-        socket.send(sData.c_str(), 2048, ADDRESS, PORT);
+        socket->send(sData.c_str(), 2048, ADDRESS, PORT);
 
 
         SDL_SetRenderDrawColor(ren, 20, 20, 20, 255);
         SDL_RenderClear(ren);
 
-        if (socket.receive(rData, 2048, received, rAddr, rPort) != Socket::NotReady){
+        if (socket->receive(rData, 2048, received, rAddr, rPort) != Socket::NotReady){
             triedToConn = 0;
             players.clear();
             bullets.clear();
@@ -659,6 +732,7 @@ int CLIENT(string addr, string port, string name) {
                 player.color[0] = lPlayer["color1"];
                 player.color[1] = lPlayer["color2"];
                 player.color[2] = lPlayer["color3"];
+                player.dead = lPlayer["dead"];
                 players.push_back(player);
             }
             for (auto &lBullet: jData["bullets"]) {
@@ -671,9 +745,6 @@ int CLIENT(string addr, string port, string name) {
         }
         else {
             triedToConn++;
-            if (triedToConn >= 180) {
-                menuOptionFont->render(ren, "Trying to connect to server", 50, 5, NULL);
-            }
         }
 
         for (auto &b: bullets) {
@@ -681,6 +752,16 @@ int CLIENT(string addr, string port, string name) {
         }
         for (auto &p: players) {
             p.draw(ren, nameFont);
+        }
+
+        if (triedToConn >= 180) {
+            menuOptionFont->render(ren, "Trying to connect to server", 50, 5, NULL);
+        }
+
+        if (checkWinner(players)) {
+            canPressEnter = true;
+            menuOptionFont->render(ren, getWinner(players) + " WON", 20, 480 - 100, NULL);
+            menuOptionFont->render(ren, "PRESS ENTER TO PLAY AGAIN", 20, 480 - 50, NULL);
         }
 
         SDL_RenderPresent(ren);
@@ -697,22 +778,46 @@ int CLIENT(string addr, string port, string name) {
 
 int main (int argc, char **argv) {
     init();
+
+    UdpSocket socket;
+    socket.bind(Socket::AnyPort);
+    socket.setBlocking(false);
+
+    string playerName, port, address, playAgainAddress = "^", playAgainPort = "^";
+    bool playAgain = false;;
+
     while (true) {
-        string playerName, port, address;
-        int menuRes = menu::main_menu(ren, &address, &port, &playerName, menuOptionFont);
-        if (menuRes == -1) {
-            return 0;
+        
+        if (!playAgain) {
+            int menuRes = menu::main_menu(ren, &address, &port, &playerName, menuOptionFont);
+            if (menuRes == -1) {
+                return 0;
+            }
+            if (menuRes == 1) {
+                if (HOST(playerName, &socket, &playAgain) == -1) {
+                    break;
+                };
+            }
+            if (menuRes == 2) {
+               if (CLIENT(address, port, playerName, &socket, &playAgainAddress, &playAgainPort, &playAgain) == -1) {
+                   break;
+               };
+            }
         }
-        if (menuRes == 1) {
-            if (HOST(playerName) == -1) {
-                break;
-            };
+        else {
+            if (playAgainAddress != "^" && playAgainPort != "^") {
+                if (CLIENT(address, port, playerName, &socket, &playAgainAddress, &playAgainPort, &playAgain) == -1) {
+                    break;
+                }
+            }
+            else {
+                if (HOST(playerName, &socket, &playAgain) == -1) {
+                    break;
+                };
+            }
+
         }
-        if (menuRes == 2) {
-           if (CLIENT(address, port, playerName) == -1) {
-               break;
-           };
-        }
+         
     }
     quit();
     return 0;

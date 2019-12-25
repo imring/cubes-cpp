@@ -32,3 +32,28 @@ int findPort(vector<int> ports, int port) {
 
 	return -1;
 }
+
+bool checkReadyPlayers(vector<Player> players) {
+	for (auto &player: players) {
+		if (!player.rPressed) {return false;}
+	}
+	return true;
+}
+
+bool checkWinner(vector<Player> players) {
+	int countOfNotDead = 0;
+	for (auto &player: players) {
+		if (!player.dead) {countOfNotDead++;}
+	}
+	if (countOfNotDead == 1) {
+		return true;
+	}
+	return false;
+}
+
+string getWinner(vector<Player> players) {
+	for (auto &player: players) {
+		if (!player.dead) {return player.name;};
+	}
+	return "-";
+}
