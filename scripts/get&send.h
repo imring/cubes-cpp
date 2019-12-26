@@ -41,7 +41,7 @@ bool checkReadyPlayers(vector<Player> players) {
 }
 
 bool checkWinner(vector<Player> players) {
-	int countOfNotDead = 0;
+	short int countOfNotDead = 0;
 	for (auto &player: players) {
 		if (!player.dead) {countOfNotDead++;}
 	}
@@ -51,9 +51,24 @@ bool checkWinner(vector<Player> players) {
 	return false;
 }
 
+int getSurvived(vector<Player> players) {
+	short int countOfNotDead = 0;
+	for (auto &player: players) {
+		if (!player.dead) {countOfNotDead++;}
+	}
+	return countOfNotDead;
+}
+
 string getWinner(vector<Player> players) {
 	for (auto &player: players) {
 		if (!player.dead) {return player.name;};
 	}
 	return "-";
+}
+
+int getWinnerIndex(vector<Player> players) {
+	for (int p = 0; p < players.size(); p++) {
+		if (!players[p].dead) {return p;}
+	}
+	return -1;
 }

@@ -22,15 +22,17 @@ string symbolsAllowedForPort = "1234567890";
 namespace menu {
  
     void draw_player_in_menu(SDL_Renderer *ren, vector<Player> &players, TTF_Font *nameFont) {
+        short int step = 600 / players.size();
         for (int player = 0; player < players.size(); player++) {
             players[player].update_colors();
-            players[player].draw_in_menu(ren, nameFont, 60 + player*120, 80);
+            players[player].draw_in_menu(ren, nameFont, 20 + (player) * step + step / 2 - 20, 80);
         }
     }
 
     void draw_player_in_menu_client(SDL_Renderer *ren, vector<Player> &players, TTF_Font *nameFont) {
+        short int step = 600 / players.size();
         for (int player = 0; player < players.size(); player++) {
-            players[player].draw_in_menu(ren, nameFont, 60 + player*120, 80);
+            players[player].draw_in_menu(ren, nameFont, 20 + (player) * step + step / 2 - 20, 80);
         }
     }
 
@@ -95,7 +97,7 @@ namespace menu {
                         }
                     }
                     if (e.key.keysym.sym == SDLK_RETURN) {
-                        if (currentOption == 1 && playerName->size() > 0) {
+                        if (currentOption == 1 && playerName->size() > 0 && playerName->size() <= 12) {
                             return 1;
                         }
                         if (currentOption == 2) {
@@ -165,7 +167,7 @@ namespace menu {
                         }
                     }
                     if (e.key.keysym.sym == SDLK_RETURN) {
-                        if (currentOption == 3) {
+                        if (currentOption == 3 && strlen(NAME->c_str()) <= 12) {
                             return 1;
                         }
                         if (currentOption == 4) {

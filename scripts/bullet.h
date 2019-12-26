@@ -26,9 +26,9 @@ class Bullet {
     public:
         int color[3] = {255, 255, 255};
         SDL_Rect rect;
-        unsigned short ownerPort;
-        Bullet(int x, int y, int xspeed, int yspeed, unsigned short ownerPort) {
-            this->ownerPort = ownerPort;
+        unsigned int ownerIdentifier;
+        Bullet(int x, int y, int xspeed, int yspeed, int ownerIdentifier) {
+            this->ownerIdentifier = ownerIdentifier;
             this->rect.x = x;
             this->rect.y = y;
             this->rect.w = this->size;

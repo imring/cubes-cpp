@@ -29,6 +29,8 @@ class Player {
         int triedToConn = 0;
         bool rPressed = false;
         bool enterPressed = false;
+        unsigned int selfIdentifier;
+        bool winner = false;
 
 
         Player(int x, int y, int port, IpAddress address, string name) {
@@ -46,6 +48,8 @@ class Player {
             this->port = port;
             this->address = address;
             this->name = name;
+
+            selfIdentifier = rand()%4000000000;
         }
 
         void togleReady() {
@@ -114,7 +118,7 @@ class Player {
 
             SDL_Rect tempRect;
             for (auto &bullet: *bullets) {
-                if (SDL_IntersectRect(&this->rect, &bullet.rect, &tempRect) == SDL_TRUE && this->port != bullet.ownerPort) {
+                if (SDL_IntersectRect(&this->rect, &bullet.rect, &tempRect) == SDL_TRUE && (this->selfIdentifier != bullet.ownerIdentifier)) {
                     this->die();
                     bullet.die();
                 }
@@ -220,7 +224,7 @@ class Player {
                 float ydiff = this->rect.y + (this->rect.h / 2) - mouse_pos[1];
                 int diff = round(sqrt(pow(xdiff, 2) + pow(ydiff, 2)) / 10);
                 bullets->push_back(Bullet(this->rect.x + (this->rect.w / 2) - 10 / 2, this->rect.y + (this->rect.h / 2) - 10 / 2, \
-                -round(xdiff / diff), -round(ydiff / diff), this->port));
+                -round(xdiff / diff), -round(ydiff / diff), this->selfIdentifier));
                 this->shot_timer = 30;
             }
         }
@@ -314,7 +318,7 @@ class Player {
         float xspeed = 0, yspeed = 0;
         int acceleration = 10;
         int weight = 10;
-        int shot_timer = 0;
+        int shot_timer = 80 + rand()%40;
 
         SDL_Texture *nameTexture = NULL;
 };
