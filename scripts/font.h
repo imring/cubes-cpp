@@ -85,6 +85,15 @@ class Font {
             textTexture = NULL;
             tempSurf = NULL;
         }
+
+        void getSize(string text, int *width, int *height) {
+            SDL_Color textColor = {0, 0, 0};
+            SDL_Surface *tempSurf = TTF_RenderText_Blended(this->font, text.c_str(), textColor);
+            *width = tempSurf->w;
+            *height = tempSurf->h;
+            SDL_FreeSurface(tempSurf);
+            tempSurf = NULL;
+        }
 };
 
 #endif

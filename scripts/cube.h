@@ -13,6 +13,7 @@
 #include <string>
 #include <algorithm>
 #include "sizeProperties.h"
+#include "messages.h"
 
 
 using sf::IpAddress;
@@ -58,7 +59,7 @@ class Player {
             else {this->rPressed = true;}
         }
 
-        void update(int xbutton, int ybutton, vector<Bullet> *bullets, vector<Player> &players) {
+        void update(int xbutton, int ybutton, vector<Bullet> *bullets, vector<Player> &players, Messages *messages) {
             if (this->shot_timer > 0) {
                 this->shot_timer --;
             }
@@ -120,6 +121,13 @@ class Player {
             SDL_Rect tempRect;
             for (auto &bullet: *bullets) {
                 if (SDL_IntersectRect(&this->rect, &bullet.rect, &tempRect) == SDL_TRUE && (this->selfIdentifier != bullet.ownerIdentifier)) {
+                    string killerName;
+                    for (auto &p: players) {
+                        if (p.selfIdentifier == bullet.ownerIdentifier) {
+                            killerName = p.name;
+                        }
+                    }
+                    messages->append(killerName + " killed " + this->name);
                     this->die();
                     bullet.die();
                 }
