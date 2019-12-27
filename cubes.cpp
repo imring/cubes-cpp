@@ -12,6 +12,7 @@
 #include <algorithm>
 #include "scripts/npc.h"
 #include "scripts/strings.h"
+#include "scripts/sizeProperties.h"
 
 
 ;using namespace std;
@@ -24,6 +25,9 @@ SDL_Renderer *ren = NULL;
 TTF_Font *nameFont = NULL;
 Font *menuOptionFont = NULL;
 Font *messageFont = NULL;
+
+int SCREEN_SIZE[2];
+float SCREEN_DIFF[2] = {0, 0};
 
 int random(int min, int max) {
     return min + rand()%max;
@@ -43,11 +47,13 @@ bool init() {
         return false;
     }
 
-    nameFont = TTF_OpenFont("fonts/FONT.otf", 12);
-    menuOptionFont = new Font("fonts/FONT.ttf", 35);
-    messageFont = new Font("fonts/FONT.ttf", 24);
+    SDL_DisplayMode DM;
+    SDL_GetCurrentDisplayMode(0, &DM);
+    int Width = DM.w;
+    int Height = DM.h;
 
-    window = SDL_CreateWindow("CUBES", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("CUBES", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, Width, Height, SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN);
+    // window = SDL_CreateWindow("CUBES", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN);
     if (window == NULL) {
         printf("Can't create window");
         return false;
@@ -58,6 +64,13 @@ bool init() {
         printf("Can't create renderer");
         return false;
     }
+    SDL_GetRendererOutputSize(ren, &SCREEN_SIZE[0], &SCREEN_SIZE[1]);
+    SCREEN_DIFF[0] = (float)SCREEN_SIZE[0] / 1366;
+    SCREEN_DIFF[1] = (float)SCREEN_SIZE[1] / 768;
+
+    nameFont = TTF_OpenFont("fonts/FONT.otf", round((float)SCREEN_SIZE[0] / 1366 * 12));
+    menuOptionFont = new Font("fonts/FONT.ttf", round((float)SCREEN_SIZE[0] / 1366 * 35));
+    messageFont = new Font("fonts/FONT.ttf", round((float)SCREEN_SIZE[0] / 1366 * 24));
 
     return true;
 }
@@ -91,7 +104,7 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
     vector<NPC> npcs;
     vector<int> ports;
 
-    players.push_back(Player(random(590), random(430), PORT, ADDRESS, playerName));
+    players.push_back(Player(random(1366 - playerSize), random(768 - playerSize), PORT, ADDRESS, playerName));
 
     char pData[2048];
     size_t received;
@@ -127,9 +140,9 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
                 }
 
                 if (e.key.keysym.sym == SDLK_n) {
-                    if (players.size() < 5) {
+                    if (players.size() < 10) {
                         IpAddress tempAddr = "0.0.0.0";
-                        players.push_back(Player(random(10, 590), random(10, 430), 0, tempAddr, aviableNamesForBots[random()%aviableNamesForBots.size() - 1]));
+                        players.push_back(Player(random(1366 - playerSize), random(768 - playerSize), 0, tempAddr, aviableNamesForBots[random()%aviableNamesForBots.size() - 1]));
                         npcs.push_back(players.size() - 1);
                         players[players.size() - 1].togleReady();
                     }
@@ -151,8 +164,8 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
                         for (int i = 1; i < strlen(pData); i++) {
                             name = name + pData[i];
                         }
-                        if (players.size() < 5) {
-                            players.push_back(Player(random(10, 590), random(10, 430), pPort, pAddr, name));
+                        if (players.size() < 10) {
+                            players.push_back(Player(random(1366 - playerSize), random(768 - playerSize), pPort, pAddr, name));
                             socket->send("HELLO", 2048, pAddr, pPort);
                             additionalIter++;
                         }
@@ -224,10 +237,10 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
 
         SDL_SetRenderDrawColor(ren, 20, 20, 20, 255);
         SDL_RenderClear(ren);
-        menu::draw_player_in_menu(ren, players, nameFont);
-        menu::draw_ip_and_port(ren, ADDRESS.toString(), to_string(PORT), menuOptionFont);
-        messageFont->render(ren, "Press \"R\" when you're ready", 50, 400, NULL);
-        messageFont->render(ren, "Press ENTER to start", 50, 440, NULL);
+        menu::draw_player_in_menu(ren, players, nameFont, SCREEN_SIZE, SCREEN_DIFF);
+        menu::draw_ip_and_port(ren, ADDRESS.toString(), to_string(PORT), menuOptionFont, SCREEN_SIZE, SCREEN_DIFF);
+        messageFont->render(ren, "Press \"R\" when you're ready", 50, SCREEN_SIZE[1] - SCREEN_DIFF[1] * 80, NULL);
+        messageFont->render(ren, "Press ENTER to start", 50, SCREEN_SIZE[1] - SCREEN_DIFF[1] * 50, NULL);
 
         SDL_RenderPresent(ren);
         fEnd = SDL_GetTicks();
@@ -253,6 +266,7 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
 
     string lSurvivourString = allDiedStrings[rand()%(allDiedStrings.size() - 1)];
     string oneSurvivedString = oneSurvived[rand()%(oneSurvived.size() - 1)];
+    int xButton, yButton, mPos1, mPos2;
 
     /*
     GAME STARTED
@@ -262,6 +276,8 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
         fStart = SDL_GetTicks();
         ports.clear();
         ports.push_back(0);
+        for (auto &p : players) {
+        }
 
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
@@ -351,7 +367,7 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
         if (!players[0].is_dead()){
             players[0].update(xbutton, ybutton, &bullets, players);
             if (lmpr) {
-                players[0].shoot(&bullets, mPos);
+                players[0].shoot(&bullets, mPos, SCREEN_DIFF, true);
             }
         }
         int additionalIter = 0;
@@ -389,7 +405,7 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
                         players[playerNum].update(jData["xbutton"], jData["ybutton"], &bullets, players);
                         if (jData["lmpr"]) {
                             int tempMPos[2] = {jData["mp1"], jData["mp2"]};
-                            players[playerNum].shoot(&bullets, tempMPos);
+                            players[playerNum].shoot(&bullets, tempMPos, SCREEN_DIFF, true);
                         }
                     }
                     ports.push_back(rPort);
@@ -399,12 +415,11 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
         }
 
         for (auto npc: npcs) {
-            int xButton, yButton, mPos1, mPos2;
             if (!players[npc.playerIndex].dead) {
                 npc.update(players, bullets, &xButton, &yButton, &mPos1, &mPos2);
                 players[npc.playerIndex].update(xButton, yButton, &bullets, players);
                 int tMPos[2] = {mPos1, mPos2};
-                players[npc.playerIndex].shoot(&bullets, tMPos);
+                players[npc.playerIndex].shoot(&bullets, tMPos, SCREEN_DIFF, false);
             }
         }
 
@@ -483,10 +498,10 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
         SDL_RenderClear(ren);
 
         for (auto &bullet : bullets) {
-            bullet.draw(ren);
+            bullet.draw(ren, SCREEN_DIFF);
         }
         for (auto &player : players) {
-            player.draw(ren, nameFont);
+            player.draw(ren, nameFont, SCREEN_DIFF);
         }
 
         if (checkWinner(players) && !winnerChecked) {
@@ -503,13 +518,13 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
         }
         if (winnerChecked) {
             if (getSurvived(players) >= 1) {
-                messageFont->render(ren, winnerName + oneSurvivedString, 20, 480 - 70, NULL);
+                messageFont->render(ren, winnerName + oneSurvivedString, 20, SCREEN_SIZE[1] - SCREEN_DIFF[1]*70, NULL);
             }
             if (getSurvived(players) == 0) {
-                messageFont->render(ren, winnerName + lSurvivourString, 20, 480 - 70, NULL);
+                messageFont->render(ren, winnerName + lSurvivourString, 20, SCREEN_SIZE[1] - SCREEN_DIFF[1]*70, NULL);
             }
             
-            messageFont->render(ren, "Press ENTER to play again", 20, 480 - 30, NULL);
+            messageFont->render(ren, "Press ENTER to play again", 20, SCREEN_SIZE[1] - SCREEN_DIFF[1]*30, NULL);
         }
 
         SDL_RenderPresent(ren);
@@ -585,7 +600,7 @@ int CLIENT(string addr, string port, string name, UdpSocket *socket, string *pla
 
         SDL_SetRenderDrawColor(ren, 20, 20, 20, 255);
         SDL_RenderClear(ren);
-        menuOptionFont->render(ren, "Connecting to server...", 90, 200, NULL);
+        menuOptionFont->render(ren, "Connecting to server...", 50, 5, NULL);
 
         SDL_RenderPresent(ren);
 
@@ -675,7 +690,7 @@ int CLIENT(string addr, string port, string name, UdpSocket *socket, string *pla
             return 0;
         }
 
-        menu::draw_player_in_menu_client(ren, players, nameFont);
+        menu::draw_player_in_menu_client(ren, players, nameFont, SCREEN_DIFF);
         messageFont->render(ren, "Press \"R\" when you're ready", 50, 440, NULL);
         SDL_RenderPresent(ren);
 
@@ -845,10 +860,10 @@ int CLIENT(string addr, string port, string name, UdpSocket *socket, string *pla
         }
 
         for (auto &b: bullets) {
-            b.draw(ren);
+            b.draw(ren, SCREEN_DIFF);
         }
         for (auto &p: players) {
-            p.draw(ren, nameFont);
+            p.draw(ren, nameFont, SCREEN_DIFF);
         }
 
         if (triedToConn >= 180) {
@@ -865,12 +880,12 @@ int CLIENT(string addr, string port, string name, UdpSocket *socket, string *pla
             canPressEnter = true;
             string winnerName = jData["winnerName"];
             if (getSurvived(players) == 0) {
-                messageFont->render(ren, winnerName + lSurvivourString, 20, 480 - 70, NULL);
+                messageFont->render(ren, winnerName + lSurvivourString, 20, SCREEN_SIZE[1] - SCREEN_DIFF[1]*70, NULL);
             }
             else {
-                messageFont->render(ren, winnerName + oneSurvivedString, 20, 480 - 70, NULL);
+                messageFont->render(ren, winnerName + oneSurvivedString, 20, SCREEN_SIZE[1] - SCREEN_DIFF[1]*70, NULL);
             }
-            messageFont->render(ren, "Press ENTER to play again", 20, 480 - 30, NULL);
+            messageFont->render(ren, "Press ENTER to play again", 20, SCREEN_SIZE[1] - SCREEN_DIFF[1]*30, NULL);
         }
 
         SDL_RenderPresent(ren);
@@ -887,7 +902,6 @@ int CLIENT(string addr, string port, string name, UdpSocket *socket, string *pla
 
 int main (int argc, char **argv) {
     init();
-
     UdpSocket socket;
     socket.bind(Socket::AnyPort);
     socket.setBlocking(false);
@@ -898,7 +912,7 @@ int main (int argc, char **argv) {
     while (true) {
         
         if (!playAgain) {
-            int menuRes = menu::main_menu(ren, &address, &port, &playerName, menuOptionFont);
+            int menuRes = menu::main_menu(ren, &address, &port, &playerName, menuOptionFont, SCREEN_SIZE, SCREEN_DIFF);
             if (menuRes == -1) {
                 return 0;
             }

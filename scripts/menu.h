@@ -21,39 +21,39 @@ string symbolsAllowedForPort = "1234567890";
 
 namespace menu {
  
-    void draw_player_in_menu(SDL_Renderer *ren, vector<Player> &players, TTF_Font *nameFont) {
-        short int step = 600 / players.size();
+    void draw_player_in_menu(SDL_Renderer *ren, vector<Player> &players, TTF_Font *nameFont, int SCREEN_SIZE[2], float SCREEN_DIFF[2]) {
+        short int step = (1366 - 40) / players.size();
         for (int player = 0; player < players.size(); player++) {
             players[player].update_colors();
-            players[player].draw_in_menu(ren, nameFont, 20 + (player) * step + step / 2 - 20, 80);
+            players[player].draw_in_menu(ren, nameFont, 20 + (player) * step + step / 2 - 20, 80, SCREEN_DIFF);
         }
     }
 
-    void draw_player_in_menu_client(SDL_Renderer *ren, vector<Player> &players, TTF_Font *nameFont) {
-        short int step = 600 / players.size();
+    void draw_player_in_menu_client(SDL_Renderer *ren, vector<Player> &players, TTF_Font *nameFont, float SCREEN_DIFF[2]) {
+        short int step = (1366 - 40) / players.size();
         for (int player = 0; player < players.size(); player++) {
-            players[player].draw_in_menu(ren, nameFont, 20 + (player) * step + step / 2 - 20, 80);
+            players[player].draw_in_menu(ren, nameFont, 20 + (player) * step + step / 2 - 20, 80, SCREEN_DIFF);
         }
     }
 
-    void draw_options(SDL_Renderer *ren, vector<string> options, vector<string> optionsAddOns, int currentOption, Font *font) {
+    void draw_options(SDL_Renderer *ren, vector<string> options, vector<string> optionsAddOns, int currentOption, Font *font, int SCREEN_SIZE[2], float SCREEN_DIFF[2]) {
         for (int option = 0; option < options.size(); option++) {
             if (option != currentOption) {
                 SDL_Color textColor = {120, 120, 120};
-                font->render(ren, options[option] + optionsAddOns[option], 50, 470 - options.size()*50 + option*50, &textColor);
+                font->render(ren, options[option] + optionsAddOns[option], 50, SCREEN_SIZE[1] - SCREEN_DIFF[1]*10 - SCREEN_DIFF[1] * options.size()*50 + SCREEN_DIFF[1] * option*50, &textColor);
             }
             else {
-                font->render(ren, options[option] + optionsAddOns[option], 50, 470 - options.size()*50 + option*50, NULL);
+                font->render(ren, options[option] + optionsAddOns[option], 50, SCREEN_SIZE[1] - SCREEN_DIFF[1]*10 - SCREEN_DIFF[1] * options.size()*50 + SCREEN_DIFF[1] * option*50, NULL);
             }
         }
     }
 
-    void draw_ip_and_port(SDL_Renderer *ren, string ipAddress, string port, Font *font) {
-        font->render(ren, "ADDRESS: " + ipAddress, 50, 230, NULL);
-        font->render(ren, "PORT: " + port, 50, 280, NULL);
+    void draw_ip_and_port(SDL_Renderer *ren, string ipAddress, string port, Font *font, int SCREEN_SIZE[2], float SCREEN_DIFF[2]) {
+        font->render(ren, "ADDRESS: " + ipAddress, 50, SCREEN_SIZE[1] - SCREEN_DIFF[1] * 250, NULL);
+        font->render(ren, "PORT: " + port, 50, SCREEN_SIZE[1] - SCREEN_DIFF[1] * 200, NULL);
     }
 
-    int host_menu(SDL_Renderer *ren, string *playerName, Font *font) {
+    int host_menu(SDL_Renderer *ren, string *playerName, Font *font, int SCREEN_SIZE[2], float SCREEN_DIFF[2]) {
         vector<string> options = {"NAME: ", "CREATE HOST", "BACK"};
         vector<string> optionsAddOns = {*playerName, "", ""};
 
@@ -120,7 +120,7 @@ namespace menu {
             SDL_SetRenderDrawColor(ren, 20, 20, 20, 255);
             SDL_RenderClear(ren);
 
-            draw_options(ren, options, optionsAddOns, currentOption, font);
+            draw_options(ren, options, optionsAddOns, currentOption, font, SCREEN_SIZE, SCREEN_DIFF);
 
             SDL_RenderPresent(ren);
 
@@ -135,7 +135,7 @@ namespace menu {
         return 0;
     }
 
-    int client_menu(SDL_Renderer *ren, string *ADDRESS, string *PORT, string *NAME, Font *optionFont) {
+    int client_menu(SDL_Renderer *ren, string *ADDRESS, string *PORT, string *NAME, Font *optionFont, int SCREEN_SIZE[2], float SCREEN_DIFF[2]) {
         bool run = true;
         SDL_Event e;
         int currentOption = 0;
@@ -220,7 +220,7 @@ namespace menu {
 
             SDL_SetRenderDrawColor(ren, 20, 20, 20, 255);
             SDL_RenderClear(ren);
-            draw_options(ren, options, optionsAddOns, currentOption, optionFont);
+            draw_options(ren, options, optionsAddOns, currentOption, optionFont, SCREEN_SIZE, SCREEN_DIFF);
 
             SDL_RenderPresent(ren);
 
@@ -235,7 +235,7 @@ namespace menu {
         return 0;
     }
 
-    int main_menu(SDL_Renderer *ren, string *ADDRESS, string *PORT, string *NAME, Font *optionFont) {
+    int main_menu(SDL_Renderer *ren, string *ADDRESS, string *PORT, string *NAME, Font *optionFont, int SCREEN_SIZE[2], float SCREEN_DIFF[2]) {
         bool run = true;
         SDL_Event e;
         int currentOption = 0;
@@ -267,7 +267,7 @@ namespace menu {
                     }
                     if (e.key.keysym.sym == SDLK_RETURN) {
                         if (currentOption == 0) {
-                            int hMenuResult = host_menu(ren, NAME, optionFont);
+                            int hMenuResult = host_menu(ren, NAME, optionFont, SCREEN_SIZE, SCREEN_DIFF);
                             if (hMenuResult == 1) {
                                 return 1;
                             }
@@ -276,7 +276,7 @@ namespace menu {
                             }
                         }
                         if (currentOption == 1) {
-                            int cMenuResult = client_menu(ren, ADDRESS, PORT, NAME, optionFont);
+                            int cMenuResult = client_menu(ren, ADDRESS, PORT, NAME, optionFont, SCREEN_SIZE, SCREEN_DIFF);
                             if (cMenuResult == -1) {
                                 return -1;
                             }
@@ -293,7 +293,7 @@ namespace menu {
 
             SDL_SetRenderDrawColor(ren, 20, 20, 20, 255);
             SDL_RenderClear(ren);
-            draw_options(ren, options, optionsAddOns, currentOption, optionFont);
+            draw_options(ren, options, optionsAddOns, currentOption, optionFont, SCREEN_SIZE, SCREEN_DIFF);
 
             SDL_RenderPresent(ren);
 

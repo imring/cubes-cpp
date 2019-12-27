@@ -48,10 +48,10 @@ class Bullet {
             this->color[2] = COLORS[color_index][2];
         }
 
-        void draw(SDL_Renderer *ren) {
+        void draw(SDL_Renderer *ren, float SCREEN_DIFF[2]) {
             SDL_SetRenderDrawColor(ren, this->color[0], this->color[1], this->color[2], 255);
             /*SDL_RenderFillRect(ren, &this->rect);*/
-            SDL_RenderFillCircle(ren, this->rect.x + (this->rect.w / 2), this->rect.y + (this->rect.h / 2), this->rect.w / 2);
+            SDL_RenderFillCircle(ren, SCREEN_DIFF[0] * (this->rect.x + (this->rect.w / 2)), SCREEN_DIFF[1] * (this->rect.y + (this->rect.h / 2)), SCREEN_DIFF[0] * this->rect.w / 2);
         }
 
         bool update() {
@@ -60,7 +60,7 @@ class Bullet {
             this->rect.x += this->xspeed;
             this->rect.y += this->yspeed;
             this->update_colors();
-            if (this->rect.x > 640 || this->rect.x < -this->size || this->rect.y > 480 || this->rect.y < -10) {
+            if (this->rect.x > 1366 || this->rect.x < -this->size || this->rect.y > 768 || this->rect.y < -10) {
                 return false;
             }
             return true;

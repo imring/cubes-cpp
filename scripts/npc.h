@@ -4,6 +4,7 @@
 #include "cube.h"
 #include "bullet.h"
 #include <cmath>
+#include "sizeProperties.h"
 
 class NPC {
 	public:
@@ -23,7 +24,7 @@ class NPC {
 
 		void update(vector<Player> players, vector<Bullet> bullets, int *xButton, int *yButton, int *mPos1, int *mPos2) {
 			float xDirSum = 0, yDirSum = 0, minDistance = 10000;
-			int minDistancePlayerIndex;
+			int minDistancePlayerIndex = -1;
 			for (int player = 0; player < players.size(); player++) {
 				if (this->playerIndex != player && !players[player].dead) {
 					float distance = std::sqrt((std::pow(abs(players[this->playerIndex].rect.x - players[player].rect.x), 2) + std::pow(abs(players[this->playerIndex].rect.y - players[player].rect.y), 2)));
@@ -31,19 +32,19 @@ class NPC {
 						minDistance = distance;
 						minDistancePlayerIndex = player;
 					}
-					if (distance < 400) {
+					if (distance < 600) {
 						if (players[this->playerIndex].rect.x < players[player].rect.x) {
-							xDirSum -= 400 - distance;
+							xDirSum -= 600 - distance;
 						}
 						else if (players[this->playerIndex].rect.x > players[player].rect.x) {
-							xDirSum += 400 - distance;
+							xDirSum += 600 - distance;
 						}
 
 						if (players[this->playerIndex].rect.y < players[player].rect.y) {
-							yDirSum -= 400 - distance;
+							yDirSum -= 600 - distance;
 						}
 						else if (players[this->playerIndex].rect.y > players[player].rect.y) {
-							yDirSum += 400 - distance;
+							yDirSum += 600 - distance;
 						}
 					}
 				}
@@ -58,76 +59,100 @@ class NPC {
 						if (xDir == 'l' && yDir == 'd' && xDiff >= 80 && yDiff >= 80) {
 							xDirSum += 500;
 							yDirSum -= 500;
-							if (640 - players[this->playerIndex].rect.x < 120) {
+							if (1366 - players[this->playerIndex].rect.x < 150) {
 								xDirSum -= 1200;
 							}
-							if (players[this->playerIndex].rect.y < 80) {
+							if (players[this->playerIndex].rect.y < 110) {
 								yDirSum +=1200;
 							}
 						}
 						if (xDir == 'r' && yDir == 'd' && xDiff >= 80 && yDiff >= 80) {
 							xDirSum -= 500;
 							yDirSum -= 500;
-							if (players[this->playerIndex].rect.x < 80) {
+							if (players[this->playerIndex].rect.x < 110) {
 								xDirSum += 1200;
 							}
-							if (players[this->playerIndex].rect.y < 80) {
+							if (players[this->playerIndex].rect.y < 110) {
 								yDirSum +=1200;
 							}
 						}
 						if (xDir == 'l' && yDir == 'u' && xDiff >= 80 && yDiff >= 80) {
 							xDirSum += 500;
 							yDirSum += 500;
-							if (640 - players[this->playerIndex].rect.x < 120) {
+							if (1366 - players[this->playerIndex].rect.x < 150) {
 								xDirSum -= 1200;
 							}
-							if (480 - players[this->playerIndex].rect.y < 120) {
+							if (768 - players[this->playerIndex].rect.y < 150) {
 								yDirSum -=1200;
 							}
 						}
 						if (xDir == 'r' && yDir == 'u' && xDiff >= 80 && yDiff >= 80) {
 							xDirSum -= 500;
 							yDirSum += 500;
-							if (players[this->playerIndex].rect.x < 80) {
+							if (players[this->playerIndex].rect.x < 110) {
 								xDirSum += 1200;
 							}
-							if (480 - players[this->playerIndex].rect.y < 120) {
+							if (768 - players[this->playerIndex].rect.y < 150) {
 								yDirSum -=1200;
 							}
 						}
 						if (xDir == 'l' && xDiff >= 80 && yDiff < 80) {
 							if (yDir == 'u') {
 								yDirSum += 500;
+								if (768 - players[this->playerIndex].rect.y < 110) {
+									yDirSum -= 1000;
+								}
 							}
 							else {
 								yDirSum -= 500;
+								if (players[this->playerIndex].rect.y < 150) {
+									yDirSum += 1000;
+								}
 							}
 							xDirSum += 500;
 						}
 						if (xDir == 'r' && xDiff >= 80 && yDiff < 80) {
 							if (yDir == 'u') {
 								yDirSum += 500;
+								if (768 - players[this->playerIndex].rect.y < 110) {
+									yDirSum -= 1000;
+								}
 							}
 							else {
 								yDirSum -= 500;
+								if (players[this->playerIndex].rect.y < 150) {
+									yDirSum += 1000;
+								}
 							}
 							xDirSum -= 500;
 						}
 						if (yDir == 'u' && yDiff >= 80 && xDiff < 80) {
 							if (xDir == 'r') {
 								xDirSum += 500;
+								if (players[this->playerIndex].rect.x < 110) {
+									xDirSum -= 1000;
+								}
 							}
 							else {
 								xDirSum -= 500;
+								if (1366 - players[this->playerIndex].rect.x < 110) {
+									xDirSum += 1000;
+								}
 							}
 							yDirSum += 500;
 						}
 						if (yDir == 'd' && yDiff >= 80 && xDiff < 80) {
 							if (xDir == 'r') {
 								xDirSum += 500;
+								if (players[this->playerIndex].rect.x < 110) {
+									xDirSum -= 1000;
+								}
 							}
 							else {
 								xDirSum -= 500;
+								if (1366 - players[this->playerIndex].rect.x < 110) {
+									xDirSum += 1000;
+								}
 							}
 							yDirSum -= 500;
 						}
@@ -154,8 +179,8 @@ class NPC {
 
 				if (std::abs(players[this->playerIndex].rect.x - this->randomNextPosX) < 10 &&\
 					std::abs(players[this->playerIndex].rect.y - this->randomNextPosY) < 10) {
-						this->randomNextPosX = rand()%590;
-						this->randomNextPosY = rand()%430;
+						this->randomNextPosX = rand()%(1366 - playerSize);
+						this->randomNextPosY = rand()%(768 - playerSize);
 					}
 
 				*mPos1 = -640 + rand()%1280;

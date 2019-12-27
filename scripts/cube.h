@@ -12,6 +12,7 @@
 #include <SFML/Network.hpp>
 #include <string>
 #include <algorithm>
+#include "sizeProperties.h"
 
 
 using sf::IpAddress;
@@ -34,7 +35,7 @@ class Player {
 
 
         Player(int x, int y, int port, IpAddress address, string name) {
-            this->rect = {x, y, 40, 40};
+            this->rect = {x, y, playerSize, playerSize};
 
             int color_index = rand()%9;
             this->next_color[0] = COLORS[color_index][0];
@@ -151,14 +152,14 @@ class Player {
         }
 
         void collide_wall() {
-            if (this->rect.x + this->rect.w >= 640) {
+            if (this->rect.x + this->rect.w >= 1366) {
                 this->xspeed = -abs(this->xspeed);
             }
             if (this->rect.x <= 0) {
                 this->xspeed = abs(this->xspeed);
             }
 
-            if (this->rect.y + this->rect.h >= 480) {
+            if (this->rect.y + this->rect.h >= 768) {
                 this->yspeed = -abs(this->yspeed);
             }
             if (this->rect.y <= 0) {
@@ -218,31 +219,56 @@ class Player {
             }
         }
 
-        void shoot(vector<Bullet> *bullets, int mouse_pos[2]){
+        void shoot(vector<Bullet> *bullets, int mouse_pos[2], float SCREEN_DIFF[2], bool change){
             if (this->shot_timer == 0) {
-                float xdiff = this->rect.x + (this->rect.w / 2) - mouse_pos[0];
-                float ydiff = this->rect.y + (this->rect.h / 2) - mouse_pos[1];
+                int mPX = 0, mPY = 0;
+                if (change) {
+                    mPX = mouse_pos[0] / SCREEN_DIFF[0];
+                    mPY = mouse_pos[1] / SCREEN_DIFF[1];
+                }
+                else {
+                    mPX = mouse_pos[0];
+                    mPY = mouse_pos[1];
+                }
+
+                float xdiff = this->rect.x + (this->rect.w / 2) - mPX;
+                float ydiff = this->rect.y + (this->rect.h / 2) - mPY;
                 int diff = round(sqrt(pow(xdiff, 2) + pow(ydiff, 2)) / 10);
                 bullets->push_back(Bullet(this->rect.x + (this->rect.w / 2) - 10 / 2, this->rect.y + (this->rect.h / 2) - 10 / 2, \
                 -round(xdiff / diff), -round(ydiff / diff), this->selfIdentifier));
                 this->shot_timer = 30;
+                this->xspeed += (xdiff / diff) / 4;
+                this->yspeed += (ydiff / diff) / 4;
             }
         }
 
-        void draw(SDL_Renderer *ren, TTF_Font *nameFont) {
+        void draw(SDL_Renderer *ren, TTF_Font *nameFont, float SCREEN_DIFF[2]) {
             if (!this->dead) {
                 SDL_SetRenderDrawColor(ren, this->color[0], this->color[1], this->color[2], 255);
-                SDL_RenderFillRect(ren, &this->rect);
-                this->draw_name(ren, nameFont, this->rect);
+
+                SDL_Rect drawRect;
+                drawRect.x = (float)this->rect.x * SCREEN_DIFF[0];
+                drawRect.y = (float)this->rect.y * SCREEN_DIFF[1];
+                drawRect.w = this->rect.w * round(SCREEN_DIFF[0]);
+                drawRect.h = this->rect.h * round(SCREEN_DIFF[0]);
+
+                SDL_RenderFillRect(ren, &drawRect);
+                this->draw_name(ren, nameFont, drawRect);
             }
         }
 
-        void draw_in_menu(SDL_Renderer *ren, TTF_Font *nameFont, int x, int y) {
+        void draw_in_menu(SDL_Renderer *ren, TTF_Font *nameFont, int x, int y, float SCREEN_DIFF[2]) {
             SDL_SetRenderDrawColor(ren, this->color[0], this->color[1], this->color[2], 255);
-            SDL_Rect rect = {x, y, 40, 40};
-            SDL_RenderFillRect(ren, &rect);
-            this->draw_name(ren, nameFont, rect);
-            this->draw_ready_in_menu(ren, nameFont, rect);
+            SDL_Rect drawRect;
+
+            drawRect.w = this->rect.w * round(SCREEN_DIFF[0]);
+            drawRect.h = this->rect.h * round(SCREEN_DIFF[0]);
+            drawRect.x = x * SCREEN_DIFF[0];
+            drawRect.y = y * SCREEN_DIFF[1];
+
+            SDL_RenderFillRect(ren, &drawRect);
+            this->draw_name(ren, nameFont, drawRect);
+            this->draw_ready_in_menu(ren, nameFont, drawRect);
         }
 
         void draw_name(SDL_Renderer *ren, TTF_Font *nameFont, SDL_Rect rect) {
