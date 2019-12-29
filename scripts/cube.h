@@ -33,6 +33,8 @@ class Player {
         bool enterPressed = false;
         unsigned int selfIdentifier;
         bool winner = false;
+        short int lifes = 3;
+        float slipCoeff = 0.02;
 
 
         Player(int x, int y, int port, IpAddress address, string name) {
@@ -52,6 +54,7 @@ class Player {
             this->name = name;
 
             selfIdentifier = rand()%4000000000;
+            this->lifes = 3;
         }
 
         void togleReady() {
@@ -65,47 +68,47 @@ class Player {
             }
             update_colors();
             if (xbutton == 1) {
-                xspeed -= (-this->weight * 9.8 * 0.02 + this->acceleration) / this->weight;
+                xspeed -= (-this->weight * 9.8 * this->slipCoeff + this->acceleration) / this->weight;
                 if (this->xspeed < -this->max_speed) {
                     this->xspeed = -this->max_speed;
                 }
             }
             else if (xbutton == 2) {
-                xspeed += (-this->weight * 9.8 * 0.02 + this->acceleration) / this->weight;
+                xspeed += (-this->weight * 9.8 * this->slipCoeff + this->acceleration) / this->weight;
                 if (this->xspeed > this->max_speed) {
                     this->xspeed = this->max_speed;
                 }
             }
             else if (xbutton == 0) {
                 if (this->xspeed < 0) {
-                    this->xspeed += (this->weight * 9.8 * 0.02) / this->weight;
+                    this->xspeed += (this->weight * 9.8 * this->slipCoeff) / this->weight;
                 }
                 if (this->xspeed > 0) {
-                    this->xspeed -= (this->weight * 9.8 * 0.02) / this->weight;
+                    this->xspeed -= (this->weight * 9.8 * this->slipCoeff) / this->weight;
                 }
                 if (abs(this->xspeed) < 0.5) {
                     this->xspeed = 0;
                 }
             }
             if (ybutton == 1) {
-                this->yspeed -= (-this->weight * 9.8 * 0.02 + this->acceleration) / this->weight;
+                this->yspeed -= (-this->weight * 9.8 * this->slipCoeff + this->acceleration) / this->weight;
                 if (this->yspeed < -this->max_speed) {
                     this->yspeed = -this->max_speed;
                 }
             }
 
             else if (ybutton == 2) {
-                this->yspeed += (-this->weight * 9.8 * 0.02 + this->acceleration) / this->weight;
+                this->yspeed += (-this->weight * 9.8 * this->slipCoeff + this->acceleration) / this->weight;
                 if (this->yspeed > this->max_speed) {
                     this->yspeed = this->max_speed;
                 }
             }
             else if (ybutton == 0) {
                 if (this->yspeed < 0) {
-                    this->yspeed += (this->weight * 9.8 * 0.02) / this->weight;
+                    this->yspeed += (this->weight * 9.8 * this->slipCoeff) / this->weight;
                 }
                 if (this->yspeed > 0) {
-                    this->yspeed -= (this->weight * 9.8 * 0.02) / this->weight;
+                    this->yspeed -= (this->weight * 9.8 * this->slipCoeff) / this->weight;
                 }
                 if (abs(this->yspeed) < 0.5) {
                     this->yspeed = 0;
@@ -127,8 +130,13 @@ class Player {
                             killerName = p.name;
                         }
                     }
-                    messages->append(killerName + " killed " + this->name);
+                    
                     this->die();
+                    this->xspeed += bullet.xspeed / 4;
+                    this->yspeed += bullet.yspeed / 4;
+                    if (this->lifes <= 0) {
+                        messages->append(killerName + " killed " + this->name);
+                    }
                     bullet.die();
                 }
             }
@@ -336,9 +344,12 @@ class Player {
         }
 
         void die() {
-            this->dead = true;
-            this->rect.x = -100;
-            this->rect.y = -100;
+            this->lifes--;
+            if (this->lifes <= 0) {
+                this->dead = true;
+                this->rect.x = -100;
+                this->rect.y = -100;
+            }
         }
         
         bool is_dead() {

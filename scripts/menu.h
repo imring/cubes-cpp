@@ -306,6 +306,70 @@ namespace menu {
         return 0;
     }
 
+    void drawPause(SDL_Renderer *ren, int pauseIptionNum, Font *font, int SCREEN_SIZE[2], float SCREEN_DIFF[2]) {
+        vector<string> options {"CONTINUE", "EXIT"};
+        vector<string> optionsAddOns = {"", ""};
+        SDL_SetRenderDrawColor(ren, 0, 0, 0, 150);
+        SDL_Rect blackRect = {0, 0, SCREEN_SIZE[0], SCREEN_SIZE[1]};
+        SDL_RenderFillRect(ren, &blackRect);
+        draw_options(ren, options, optionsAddOns, pauseIptionNum, font, SCREEN_SIZE, SCREEN_DIFF);
+    }
+
+    void drawTitle(SDL_Renderer *ren, Font *titleFont, int SCREEN_SIZE[2], float SCREEN_DIFF[2]) {
+        SDL_Event e;
+        int sizeChange = 50;
+        bool run = true;
+        int textSize[2];
+        titleFont->getSize("LLEMOON", &textSize[0], &textSize[1]);
+        int fTime = 1000 / 60, fDelta = 0;
+        long int fStart, fEnd;
+        int frameCount;
+        int alpha = 255;
+        SDL_Texture *titleTextue = NULL;
+
+
+        SDL_Rect titleRect = {
+                SCREEN_SIZE[0]/2 - textSize[0]/2,
+                SCREEN_SIZE[1]/2 - textSize[1]/2,
+                textSize[0],
+                textSize[1],
+            };
+        SDL_ShowCursor(SDL_DISABLE);
+        while(run) {
+            fStart = SDL_GetTicks();
+            while (SDL_PollEvent(&e) != 0) {
+                if (e.type == SDL_KEYDOWN or e.type == SDL_MOUSEBUTTONDOWN) {
+                    run = false;
+                }
+            }
+
+            titleTextue = titleFont->getTextureForTitle(ren, "LLEMOON");
+            if (frameCount >= 240) {
+                alpha -= 5;
+                SDL_SetTextureAlphaMod(titleTextue, alpha);
+            }
+
+            SDL_SetRenderDrawColor(ren, 20, 20, 20, 255);
+            SDL_RenderClear(ren);
+            SDL_RenderCopy(ren, titleTextue, NULL, &titleRect);
+
+            SDL_RenderPresent(ren);
+
+            frameCount++;
+            if (alpha <= 0) {
+                run = false;
+            }
+
+            fEnd = SDL_GetTicks();
+            fDelta = (fEnd - fStart);
+            if (fDelta < fTime) {
+                SDL_Delay(fTime - fDelta);
+            }
+        }
+
+        SDL_ShowCursor(SDL_ENABLE);
+
+    }
 
 }
 

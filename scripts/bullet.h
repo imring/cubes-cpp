@@ -27,6 +27,8 @@ class Bullet {
         int color[3] = {255, 255, 255};
         SDL_Rect rect;
         unsigned int ownerIdentifier;
+        int xspeed, yspeed;
+        
         Bullet(int x, int y, int xspeed, int yspeed, int ownerIdentifier) {
             this->ownerIdentifier = ownerIdentifier;
             this->rect.x = x;
@@ -96,10 +98,9 @@ class Bullet {
         }
 
     private:
-    int xspeed, yspeed;
-    int size = 10;
-    int next_color[3] = {255, 255, 255};
-    bool is_died = false;
+        int size = 10;
+        int next_color[3] = {255, 255, 255};
+        bool is_died = false;
 };
 
 #endif

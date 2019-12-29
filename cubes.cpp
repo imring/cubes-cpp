@@ -23,9 +23,11 @@ using sf::IpAddress;
 
 SDL_Window *window = NULL;
 SDL_Renderer *ren = NULL;
+
 TTF_Font *nameFont = NULL;
 Font *menuOptionFont = NULL;
 Font *messageFont = NULL;
+Font *titleFont = NULL;
 
 int SCREEN_SIZE[2];
 float SCREEN_DIFF[2] = {0, 0};
@@ -65,6 +67,7 @@ bool init() {
         printf("Can't create renderer");
         return false;
     }
+    SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
     SDL_GetRendererOutputSize(ren, &SCREEN_SIZE[0], &SCREEN_SIZE[1]);
     SCREEN_DIFF[0] = (float)SCREEN_SIZE[0] / 1366;
     SCREEN_DIFF[1] = (float)SCREEN_SIZE[1] / 768;
@@ -72,6 +75,7 @@ bool init() {
     nameFont = TTF_OpenFont("fonts/FONT.otf", round((float)SCREEN_SIZE[0] / 1366 * 12));
     menuOptionFont = new Font("fonts/FONT.ttf", round((float)SCREEN_SIZE[0] / 1366 * 35));
     messageFont = new Font("fonts/FONT.ttf", round((float)SCREEN_SIZE[0] / 1366 * 24));
+    titleFont = new Font("fonts/FONT.ttf", round((float)SCREEN_SIZE[0] / 1366 * 128));
 
     return true;
 }
@@ -79,6 +83,11 @@ bool init() {
 void quit() {
     SDL_DestroyRenderer(ren);
     SDL_DestroyWindow(window);
+
+    nameFont = NULL;
+    menuOptionFont = NULL;
+    messageFont = NULL;
+    titleFont = NULL;
 
     ren = NULL;
     window = NULL;
@@ -145,7 +154,11 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
                 if (e.key.keysym.sym == SDLK_n) {
                     if (players.size() < 10) {
                         IpAddress tempAddr = "0.0.0.0";
-                        players.push_back(Player(random(1366 - playerSize), random(768 - playerSize), 0, tempAddr, aviableNamesForBots[random()%aviableNamesForBots.size() - 1]));
+                        int randomNameIndex = rand()%aviableNamesForBots.size() - 1;
+                        if (randomNameIndex < 0) {
+                            randomNameIndex = 0;
+                        }
+                        players.push_back(Player(random(1366 - playerSize), random(768 - playerSize), 0, tempAddr, aviableNamesForBots[randomNameIndex]));
                         npcs.push_back(players.size() - 1);
                         players[players.size() - 1].togleReady();
                     }
@@ -242,8 +255,10 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
         SDL_RenderClear(ren);
         menu::draw_player_in_menu(ren, players, nameFont, SCREEN_SIZE, SCREEN_DIFF);
         menu::draw_ip_and_port(ren, ADDRESS.toString(), to_string(PORT), menuOptionFont, SCREEN_SIZE, SCREEN_DIFF);
-        messageFont->render(ren, "Press \"R\" when you're ready", 50, SCREEN_SIZE[1] - SCREEN_DIFF[1] * 80, NULL);
-        messageFont->render(ren, "Press ENTER to start", 50, SCREEN_SIZE[1] - SCREEN_DIFF[1] * 50, NULL);
+
+        messageFont->render(ren, "Press N to add a bot", 50, SCREEN_SIZE[1] - SCREEN_DIFF[1] * 100, NULL);
+        messageFont->render(ren, "Press R when you're ready", 50, SCREEN_SIZE[1] - SCREEN_DIFF[1] * 70, NULL);
+        messageFont->render(ren, "Press ENTER to start", 50, SCREEN_SIZE[1] - SCREEN_DIFF[1] * 40, NULL);
 
         SDL_RenderPresent(ren);
         fEnd = SDL_GetTicks();
@@ -270,6 +285,8 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
     string lSurvivourString = allDiedStrings[rand()%(allDiedStrings.size() - 1)];
     string oneSurvivedString = oneSurvived[rand()%(oneSurvived.size() - 1)];
     int xButton, yButton, mPos1, mPos2;
+    bool pausePressed = false;
+    int pauseCurrentOption = 0;
 
     /*
     GAME STARTED
@@ -288,31 +305,63 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
                 return -1;
             }
             if (e.type == SDL_KEYDOWN) {
-                if (e.key.keysym.sym == SDLK_w) {
+                if (e.key.keysym.sym == SDLK_w && !pausePressed) {
                     upr = true;
                 }
-                if (e.key.keysym.sym == SDLK_s) {
+                if (e.key.keysym.sym == SDLK_s && !pausePressed) {
                     dpr = true;
                 }
-                if (e.key.keysym.sym == SDLK_d) {
+                if (e.key.keysym.sym == SDLK_d && !pausePressed) {
                     rpr = true;
                 } 
-                if (e.key.keysym.sym == SDLK_a) {
+                if (e.key.keysym.sym == SDLK_a && !pausePressed) {
                     lpr = true;
                 }
                 if (e.key.keysym.sym == SDLK_ESCAPE) {
-                    *playAgain = false;
-                    return 0;
+                    if (pausePressed) {
+                        pausePressed = false;
+                    }
+                    else {
+                        pausePressed = true;
+                        lmpr = false;
+                        upr = false;
+                        dpr = false;
+                        rpr = false;
+                        lpr = false;
+                    }
                 }
-                if (e.key.keysym.sym == SDLK_RETURN && canPressEnter) {
+                if (e.key.keysym.sym == SDLK_RETURN && canPressEnter && !pausePressed) {
                     *playAgain = true;
                     for (int p = 1; p < players.size(); p++) {
                         socket->send("GAME FINISHED", 4096, players[p].address, players[p].port);
                     }
                     return 0;
                 }
+
+                //PAUSE CONTROL
+                if (e.key.keysym.sym == SDLK_DOWN  && pausePressed) {
+                    pauseCurrentOption++;
+                    if (pauseCurrentOption == 2) {
+                        pauseCurrentOption = 0;
+                    }
+                }
+                if (e.key.keysym.sym == SDLK_UP && pausePressed) {
+                    pauseCurrentOption--;
+                    if (pauseCurrentOption == -1) {
+                        pauseCurrentOption = 1;
+                    }
+                }
+                if (e.key.keysym.sym == SDLK_RETURN && pausePressed) {
+                    if (pauseCurrentOption == 0) {
+                        pausePressed = false;
+                    }
+                    else {
+                        *playAgain = false;
+                        return 0;
+                    }
+                }
             }
-            if (e.type == SDL_KEYUP) {
+            if (e.type == SDL_KEYUP && !pausePressed) {
                 if (e.key.keysym.sym == SDLK_w) {
                     upr = false;
                 }
@@ -327,12 +376,12 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
                 }
             }
             if (e.type == SDL_MOUSEBUTTONDOWN) {
-                if (e.button.button == SDL_BUTTON_LEFT) {
+                if (e.button.button == SDL_BUTTON_LEFT && !pausePressed) {
                     lmpr = true;
                 }
             }
             if (e.type == SDL_MOUSEBUTTONUP) {
-                if (e.button.button == SDL_BUTTON_LEFT) {
+                if (e.button.button == SDL_BUTTON_LEFT && !pausePressed) {
                     lmpr = false;
                 }
             }
@@ -469,7 +518,9 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
                 {"color2", player.color[1]},
                 {"color3", player.color[2]},
                 {"name", player.name},
-                {"dead", player.dead}
+                {"dead", player.dead},
+                {"port", player.port},
+                {"lifes", player.lifes}
             };
             sjData["players"].push_back(pData);
         }
@@ -491,6 +542,12 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
         else {
             sjData["winnerChecked"] = false;
         }
+        if (canPressEnter) {
+            sjData["canPressEnter"] = true;
+        }
+        else {
+            sjData["canPressEnter"] = false;
+        }
         sData = sjData.dump();
         for (int player = 1; player < players.size(); player++) {
             if (socket->send(sData.c_str(), 4096, players[player].address, players[player].port) != Socket::Done && players[player].port != 0) {
@@ -501,7 +558,6 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
         SDL_SetRenderDrawColor(ren, 20, 20, 20, 255);
         SDL_RenderClear(ren);
 
-        messages.draw(ren, messageFont, SCREEN_SIZE, SCREEN_DIFF);
         for (auto &bullet : bullets) {
             bullet.draw(ren, SCREEN_DIFF);
         }
@@ -517,6 +573,10 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
             winnerChecked = true;
             
         }
+        if (getBotsLeft(players) && !canPressEnter) {
+            canPressEnter = true;
+        }
+
         if (players.size() == 0 && winnerChecked == false) {
             winnerChecked = true;
             winnerName = "Poltergeist";
@@ -528,8 +588,16 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
             if (getSurvived(players) == 0) {
                 messageFont->render(ren, winnerName + lSurvivourString, 20, SCREEN_SIZE[1] - SCREEN_DIFF[1]*70, NULL);
             }
-            
-            messageFont->render(ren, "Press ENTER to play again", 20, SCREEN_SIZE[1] - SCREEN_DIFF[1]*30, NULL);
+        }
+
+        if (canPressEnter) {
+            messageFont->render(ren, "Press ENTER to play again", 20, SCREEN_SIZE[1] - SCREEN_DIFF[1]*40, NULL);
+        }
+        messages.draw(ren, messageFont, SCREEN_SIZE, SCREEN_DIFF);
+
+        menuOptionFont->render(ren, "LIFES: " + to_string(players[0].lifes), SCREEN_SIZE[0] - 200 * SCREEN_DIFF[0], SCREEN_SIZE[1] - SCREEN_DIFF[1] * 60, NULL, true, SCREEN_DIFF[0], SCREEN_DIFF[1]);
+        if (pausePressed) {
+            menu::drawPause(ren, pauseCurrentOption, menuOptionFont, SCREEN_SIZE, SCREEN_DIFF);
         }
 
         SDL_RenderPresent(ren);
@@ -563,6 +631,8 @@ int CLIENT(string addr, string port, string name, UdpSocket *socket, string *pla
     int fTime = 1000 / 60, fDelta = 0;
     long int fStart, fEnd;
     bool run = true;
+
+    unsigned short selfPort = socket->getLocalPort();
 
     /*
     CONNECTIN TO SERVER
@@ -686,7 +756,7 @@ int CLIENT(string addr, string port, string name, UdpSocket *socket, string *pla
             triedToConn++;
         }
         if (triedToConn >= 180) {
-            menuOptionFont->render(ren, "Trying to connect to server", 10, 10, NULL);
+            menuOptionFont->render(ren, "Connecting to server...", 10, 10, NULL);
         }
         if (triedToConn >= 600) {
             *playAgain = false;
@@ -720,6 +790,9 @@ int CLIENT(string addr, string port, string name, UdpSocket *socket, string *pla
     string lSurvivourString = allDiedStrings[rand()%(allDiedStrings.size() - 1)];
     string oneSurvivedString = oneSurvived[rand()%(oneSurvived.size() - 1)];
 
+    bool pausePressed = false;
+    int pauseCurrentOption = 0;
+
     Messages messages;
 
     while (run) {
@@ -735,34 +808,66 @@ int CLIENT(string addr, string port, string name, UdpSocket *socket, string *pla
                 return -1;
             }
             if (e.type == SDL_KEYDOWN) {
-                if (e.key.keysym.sym == SDLK_w) {
+                if (e.key.keysym.sym == SDLK_w && !pausePressed) {
                     upr = true;
                 }
-                if (e.key.keysym.sym == SDLK_s) {
+                if (e.key.keysym.sym == SDLK_s && !pausePressed) {
                     dpr = true;
                 }
-                if (e.key.keysym.sym == SDLK_d) {
+                if (e.key.keysym.sym == SDLK_d && !pausePressed) {
                     rpr = true;
                 } 
-                if (e.key.keysym.sym == SDLK_a) {
+                if (e.key.keysym.sym == SDLK_a && !pausePressed) {
                     lpr = true;
                 }
                 if (e.key.keysym.sym == SDLK_ESCAPE) {
-                    socket->send("GOOD BYE", 4096, ADDRESS, PORT);
-                    *playAgain = false;
-                    *playAgainAddress = "^";
-                    *playAgainPort = "^";
-                    return 0;
+                    if (pausePressed) {
+                        pausePressed = false;
+                    }
+                    else {
+                        pausePressed = true;
+                        lmpr = false;
+                        upr = false;
+                        dpr = false;
+                        rpr = false;
+                        lpr = false;
+                    }
                 }
-                if (e.key.keysym.sym == SDLK_RETURN && canPressEnter) {
+                if (e.key.keysym.sym == SDLK_RETURN && canPressEnter && !pausePressed) {
                     *playAgainAddress = addr;
                     *playAgainPort = port;
                     *playAgain = true;
                     socket->send("ENTER PRESSED", 4096, ADDRESS, PORT);
                     return 0;
                 }
+
+                //PAUSE CONTROL
+                if (e.key.keysym.sym == SDLK_RETURN && pausePressed) {
+                    if (pauseCurrentOption == 0) {
+                        pausePressed = false;
+                    }
+                    if (pauseCurrentOption == 1) {
+                        socket->send("GOOD BYE", 4096, ADDRESS, PORT);
+                        *playAgain = false;
+                        *playAgainAddress = "^";
+                        *playAgainPort = "^";
+                        return 0;
+                    }
+                }
+                if (e.key.keysym.sym == SDLK_DOWN && pausePressed) {
+                    pauseCurrentOption++;
+                    if (pauseCurrentOption == 2) {
+                        pauseCurrentOption = 0;
+                    }
+                }
+                if (e.key.keysym.sym == SDLK_UP && pausePressed) {
+                    pauseCurrentOption--;
+                    if (pauseCurrentOption == -1) {
+                        pauseCurrentOption = 1;
+                    }
+                } 
             }
-            if (e.type == SDL_KEYUP) {
+            if (e.type == SDL_KEYUP && !pausePressed) {
                 if (e.key.keysym.sym == SDLK_w) {
                     upr = false;
                 }
@@ -777,12 +882,12 @@ int CLIENT(string addr, string port, string name, UdpSocket *socket, string *pla
                 }
             }
             if (e.type == SDL_MOUSEBUTTONDOWN) {
-                if (e.button.button == SDL_BUTTON_LEFT) {
+                if (e.button.button == SDL_BUTTON_LEFT && !pausePressed) {
                     lmpr = true;
                 }
             }
             if (e.type == SDL_MOUSEBUTTONUP) {
-                if (e.button.button == SDL_BUTTON_LEFT) {
+                if (e.button.button == SDL_BUTTON_LEFT && !pausePressed) {
                     lmpr = false;
                 }
             }
@@ -851,6 +956,8 @@ int CLIENT(string addr, string port, string name, UdpSocket *socket, string *pla
                     player.color[1] = lPlayer["color2"];
                     player.color[2] = lPlayer["color3"];
                     player.dead = lPlayer["dead"];
+                    player.lifes = lPlayer["lifes"];
+                    player.port = lPlayer["port"];
                     players.push_back(player);
                 }
                 for (auto &lBullet: jData["bullets"]) {
@@ -871,10 +978,13 @@ int CLIENT(string addr, string port, string name, UdpSocket *socket, string *pla
         }
         for (auto &p: players) {
             p.draw(ren, nameFont, SCREEN_DIFF);
+            if (p.port == selfPort) {
+                menuOptionFont->render(ren, "LIFES: " + to_string(p.lifes), SCREEN_SIZE[0] - 200 * SCREEN_DIFF[0], SCREEN_SIZE[1] - SCREEN_DIFF[1] * 60, NULL, true, SCREEN_DIFF[0], SCREEN_DIFF[1]);
+            }
         }
 
         if (triedToConn >= 180) {
-            menuOptionFont->render(ren, "Trying to connect to server", 50, 5, NULL);
+            menuOptionFont->render(ren, "Connecting to server...", 50, 5, NULL);
         }
         if (triedToConn >= 600) {
             *playAgain = false;
@@ -891,8 +1001,10 @@ int CLIENT(string addr, string port, string name, UdpSocket *socket, string *pla
             }
             else {
                 messageFont->render(ren, winnerName + oneSurvivedString, 20, SCREEN_SIZE[1] - SCREEN_DIFF[1]*70, NULL);
-            }
-            messageFont->render(ren, "Press ENTER to play again", 20, SCREEN_SIZE[1] - SCREEN_DIFF[1]*30, NULL);
+            }  
+        }
+        if (dataParsed && (jData["canPressEnter"] || canPressEnter)) {
+            messageFont->render(ren, "Press ENTER to play again", 20, SCREEN_SIZE[1] - SCREEN_DIFF[1]*40, NULL);
         }
         if (dataParsed) {
             messages.messages.clear();
@@ -902,6 +1014,9 @@ int CLIENT(string addr, string port, string name, UdpSocket *socket, string *pla
             messages.draw(ren, messageFont, SCREEN_SIZE, SCREEN_DIFF, false);
         }
 
+        if (pausePressed) {
+            menu::drawPause(ren, pauseCurrentOption, menuOptionFont, SCREEN_SIZE, SCREEN_DIFF);
+        }
 
         SDL_RenderPresent(ren);
 
@@ -922,7 +1037,8 @@ int main (int argc, char **argv) {
     socket.setBlocking(false);
 
     string playerName, port, address, playAgainAddress = "^", playAgainPort = "^";
-    bool playAgain = false;;
+    bool playAgain = false;
+    menu::drawTitle(ren, titleFont, SCREEN_SIZE, SCREEN_DIFF);
 
     while (true) {
         

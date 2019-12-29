@@ -72,3 +72,10 @@ int getWinnerIndex(vector<Player> players) {
 	}
 	return -1;
 }
+
+bool getBotsLeft(vector<Player> players) {
+	for (auto &player: players) {
+		if (player.port != 0 && !player.dead) {return false;};
+	}
+	return true;
+}

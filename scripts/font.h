@@ -59,7 +59,7 @@ class Font {
             }   
         }
 
-        void render(SDL_Renderer *ren, std::string text, int x, int y, SDL_Color *argTextColor = NULL) {
+        void render(SDL_Renderer *ren, std::string text, int x, int y, SDL_Color *argTextColor = NULL, bool drawBgRect = false, float scrDiffX = 1, float scrDiffY = 1) {
             SDL_Color textColor;
             if (argTextColor != NULL) {
                 textColor = *argTextColor;
@@ -76,7 +76,14 @@ class Font {
             if (textTexture == NULL) {
                 std::cout << "Can't create texture from surface: " << SDL_GetError() << std::endl;
             }
+
             SDL_Rect textRect = {x, y, tempSurf->w, tempSurf->h};
+            if (drawBgRect) {
+                SDL_Rect bgRect = {(int)(x - 5*scrDiffX), (int)(y - 5*scrDiffY), (int)(textRect.w + 10*scrDiffX), (int)(textRect.h + 10*scrDiffY)};
+                SDL_SetRenderDrawColor(ren, 0, 0, 0, 100);
+                SDL_RenderFillRect(ren, &bgRect);
+            }   
+
             SDL_RenderCopy(ren, textTexture, NULL, &textRect);
 
             SDL_DestroyTexture(textTexture);
@@ -84,6 +91,13 @@ class Font {
 
             textTexture = NULL;
             tempSurf = NULL;
+        }
+
+        SDL_Texture *getTextureForTitle(SDL_Renderer *ren, std::string text) {
+            this->update_colors();
+            SDL_Color textColor = {(Uint8)this->color[0], (Uint8)this->color[1], (Uint8)this->color[2]};
+            SDL_Surface *tempSurf = TTF_RenderText_Blended(this->font, text.c_str(), textColor);
+            return SDL_CreateTextureFromSurface(ren, tempSurf);
         }
 
         void getSize(string text, int *width, int *height) {
