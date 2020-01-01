@@ -9,10 +9,13 @@
 class NPC {
 	public:
 		int playerIndex;
-		int randomNextPosX = rand()%590, randomNextPosY = rand()%430;
+		int randomNextPosX;
+		int randomNextPosY;
 
 		NPC(int index) {
 			this->playerIndex = index;
+			this->randomNextPosX = rand()%(1366 - playerSize);
+			this->randomNextPosY = rand()%(768 - playerSize);
 		}
 
 		void getBulletPos(vector<Player> players, short int bX, short int bY, char *xDir, char *yDir) {
@@ -172,20 +175,23 @@ class NPC {
 
 			if (players[this->playerIndex].winner) {
 				if (players[this->playerIndex].rect.x < this->randomNextPosX) {*xButton = 2;}
-				if (players[this->playerIndex].rect.x > this->randomNextPosX) {*xButton = 1;}
+				else if (players[this->playerIndex].rect.x > this->randomNextPosX) {*xButton = 1;}
+				else {*xButton = 0;}
 
 				if (players[this->playerIndex].rect.y < this->randomNextPosY) {*yButton = 2;}
-				if (players[this->playerIndex].rect.y > this->randomNextPosY) {*yButton = 1;}
+				else if (players[this->playerIndex].rect.y > this->randomNextPosY) {*yButton = 1;}
+				else {*yButton = 0;}
 
 				if (std::abs(players[this->playerIndex].rect.x - this->randomNextPosX) < 10 &&\
 					std::abs(players[this->playerIndex].rect.y - this->randomNextPosY) < 10) {
 						this->randomNextPosX = rand()%(1366 - playerSize);
 						this->randomNextPosY = rand()%(768 - playerSize);
 					}
+					
 
-				*mPos1 = -640 + rand()%1280;
-				*mPos2 = -480 + rand()%960;
-			}			
+				*mPos1 = -1366 + rand()%2732;
+				*mPos2 = -768 + rand()%1538;
+			}	
 		}		
 };
 

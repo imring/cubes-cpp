@@ -35,6 +35,7 @@ class Player {
         bool winner = false;
         short int lifes = 3;
         float slipCoeff = 0.02;
+        SDL_Texture *nameTexture = NULL;
 
 
         Player(int x, int y, int port, IpAddress address, string name) {
@@ -55,6 +56,10 @@ class Player {
 
             selfIdentifier = rand()%4000000000;
             this->lifes = 3;
+        }
+        ~Player() {
+            SDL_DestroyTexture(this->nameTexture);
+            this->nameTexture = NULL;
         }
 
         void togleReady() {
@@ -204,8 +209,8 @@ class Player {
                                 this->rect.x = player.rect.x + player.rect.w;
                                 this->xspeed = abs(abs(this->xspeed) + abs(player.xspeed)) / 2;
                                 player.xspeed = -abs(abs(this->xspeed) + abs(player.xspeed)) / 2;
-                                if (this->rect.x + this->rect.w > 640) {
-                                    this->rect.x = 640 - this->rect.w;
+                                if (this->rect.x + this->rect.w > 1366) {
+                                    this->rect.x = 1366 - this->rect.w;
                                     player.rect.x = this->rect.x - player.rect.w;
                                 }
                             }
@@ -224,8 +229,8 @@ class Player {
                                 this->rect.y = player.rect.y + player.rect.h;
                                 this->yspeed = abs(abs(this->yspeed) + abs(player.yspeed)) / 2;
                                 player.yspeed = -abs(abs(this->yspeed) + abs(player.yspeed)) / 2;
-                                if (this->rect.y + this->rect.h > 480) {
-                                    this->rect.y = 480 - this->rect.h;
+                                if (this->rect.y + this->rect.h > 768) {
+                                    this->rect.y = 768 - this->rect.h;
                                     player.rect.y = this->rect.y - player.rect.h;
                                 }
                             }
@@ -282,6 +287,7 @@ class Player {
             drawRect.x = x * SCREEN_DIFF[0];
             drawRect.y = y * SCREEN_DIFF[1];
 
+
             SDL_RenderFillRect(ren, &drawRect);
             this->draw_name(ren, nameFont, drawRect);
             this->draw_ready_in_menu(ren, nameFont, drawRect);
@@ -297,48 +303,57 @@ class Player {
             if (tempSurface == NULL) {
                 cout << "ERROR: " << SDL_GetError() << " " << TTF_GetError() << endl;
             }
-            nameTexture = SDL_CreateTextureFromSurface(ren, tempSurface);
-            if (nameTexture == NULL) {
+
+            this->nameTexture = SDL_CreateTextureFromSurface(ren, tempSurface);
+            if (this->nameTexture == NULL) {
                 cout << "Error: " << SDL_GetError() << endl;
             }
+
+            
 
             SDL_Rect nameRect;
             nameRect.x = rect.x + (rect.w / 2) - (tempSurface->w / 2);
             nameRect.y = rect.y - 20;
             nameRect.w = tempSurface->w; nameRect.h = tempSurface->h;
-            SDL_RenderCopy(ren, nameTexture, NULL, &nameRect);
+
+            SDL_RenderCopy(ren, this->nameTexture, NULL, &nameRect);
             SDL_FreeSurface(tempSurface);
             tempSurface = NULL;
         }
 
         void draw_ready_in_menu(SDL_Renderer *ren, TTF_Font *nameFont, SDL_Rect rect) {
-            if (nameFont == NULL) {
-                cout << SDL_GetError() << endl;
-            }
             SDL_Color nameColor = {(Uint8)this->color[0], (Uint8)this->color[1], (Uint8)this->color[2]};
 
             SDL_Surface *tempSurface;
             if (this->rPressed) {
                 tempSurface = TTF_RenderText_Blended(nameFont, "READY", nameColor);
+                if (tempSurface == NULL) {
+                    cout << "TEXT RENDER ERROR: " << SDL_GetError() << " " << TTF_GetError() << endl;
+                }
             }
             else {
                 SDL_Color tempColor = {120, 120, 120};
                 tempSurface = TTF_RenderText_Blended(nameFont, "NOT READY", tempColor);
+                if (tempSurface == NULL) {
+                    cout << "TEXT RENDER ERROR: " << SDL_GetError() << " " << TTF_GetError() << endl;
+                }
             }
             
             if (tempSurface == NULL) {
                 cout << "ERROR: " << SDL_GetError() << " " << TTF_GetError() << endl;
             }
-            nameTexture = SDL_CreateTextureFromSurface(ren, tempSurface);
-            if (nameTexture == NULL) {
+            this->nameTexture = SDL_CreateTextureFromSurface(ren, tempSurface);
+            if (this->nameTexture == NULL) {
                 cout << "Error: " << SDL_GetError() << endl;
             }
+            
 
             SDL_Rect nameRect;
             nameRect.x = rect.x + (rect.w / 2) - (tempSurface->w / 2);
             nameRect.y = rect.y + rect.h + 5;
             nameRect.w = tempSurface->w; nameRect.h = tempSurface->h;
-            SDL_RenderCopy(ren, nameTexture, NULL, &nameRect);
+
+            SDL_RenderCopy(ren, this->nameTexture, NULL, &nameRect);
             SDL_FreeSurface(tempSurface);
             tempSurface = NULL;
         }
@@ -364,8 +379,6 @@ class Player {
         int acceleration = 10;
         int weight = 10;
         int shot_timer = 80 + rand()%40;
-
-        SDL_Texture *nameTexture = NULL;
 };
 
 #endif

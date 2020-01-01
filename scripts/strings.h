@@ -84,13 +84,14 @@ const std::vector<string> aviableNamesForBots = {
 
 const std::vector <string> allDiedStrings = {
 	" was the last survivour",
-	" caught bullet at the last moment",
+	" caught the bullet at the last moment",
 	" died after all",
-	", I'm so sorry"
+	", I'm so sorry",
+	" was good"
 };
 
 const std::vector <string> oneSurvived = {
-	" is hero of the evening",
+	" is hero of the day",
 	" won!",
 	" gets a prize",
 	" was too aggressive!"

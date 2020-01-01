@@ -2,6 +2,7 @@
 #include <SDL2/SDL_ttf.h>
 #include <SFML/Network.hpp>
 #include <stdio.h>
+#include <stdlib.h>
 #include "scripts/cube.h"
 #include "scripts/bullet.h"
 #include <cmath>
@@ -129,9 +130,9 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
     */
 
     while (run) {
+        fStart = SDL_GetTicks();
         ports.clear();
         ports.push_back(0);
-        fStart = SDL_GetTicks();
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
                 *playAgain = false;
@@ -154,11 +155,7 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
                 if (e.key.keysym.sym == SDLK_n) {
                     if (players.size() < 10) {
                         IpAddress tempAddr = "0.0.0.0";
-                        int randomNameIndex = rand()%aviableNamesForBots.size() - 1;
-                        if (randomNameIndex < 0) {
-                            randomNameIndex = 0;
-                        }
-                        players.push_back(Player(random(1366 - playerSize), random(768 - playerSize), 0, tempAddr, aviableNamesForBots[randomNameIndex]));
+                        players.push_back(Player(random(1366 - playerSize), random(768 - playerSize), 0, tempAddr, aviableNamesForBots[rand()%aviableNamesForBots.size()]));
                         npcs.push_back(players.size() - 1);
                         players[players.size() - 1].togleReady();
                     }
@@ -199,18 +196,22 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
                         for (auto &bot: npcs) {if (bot.playerIndex > playerNum) {bot.playerIndex--;}}
                         players.erase(players.begin() + playerNum);
                     }
-                    
                 }
                 if (strcmp(pData, "I AM HERE") == 0) {
                     ports.push_back((int)pPort);
                     int playerNum = getPlayerIndex(players, pPort);
-                    players[playerNum].triedToConn = 0;
+                    if (playerNum < players.size() && playerNum >= 0) {
+                        players[playerNum].triedToConn = 0;
+                    }
+                    
                 }
                 if (strcmp(pData, "R PRESSED") == 0) {
                     ports.push_back((int)pPort);
                     int playerNum = getPlayerIndex(players, pPort);
-                    players[playerNum].triedToConn = 0;
-                    players[playerNum].togleReady();
+                    if (playerNum < players.size() && playerNum >= 0) {
+                        players[playerNum].triedToConn = 0;
+                        players[playerNum].togleReady();
+                    }
                 }
             }
             pNum ++;
@@ -253,7 +254,9 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
 
         SDL_SetRenderDrawColor(ren, 20, 20, 20, 255);
         SDL_RenderClear(ren);
+
         menu::draw_player_in_menu(ren, players, nameFont, SCREEN_SIZE, SCREEN_DIFF);
+
         menu::draw_ip_and_port(ren, ADDRESS.toString(), to_string(PORT), menuOptionFont, SCREEN_SIZE, SCREEN_DIFF);
 
         messageFont->render(ren, "Press N to add a bot", 50, SCREEN_SIZE[1] - SCREEN_DIFF[1] * 100, NULL);
@@ -282,11 +285,12 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
     string winnerName;
     bool winnerChecked = false;
 
-    string lSurvivourString = allDiedStrings[rand()%(allDiedStrings.size() - 1)];
-    string oneSurvivedString = oneSurvived[rand()%(oneSurvived.size() - 1)];
+    string lSurvivourString = allDiedStrings[rand()%allDiedStrings.size()];
+    string oneSurvivedString = oneSurvived[rand()%oneSurvived.size()];
     int xButton, yButton, mPos1, mPos2;
     bool pausePressed = false;
     int pauseCurrentOption = 0;
+    SDL_ShowCursor(SDL_ENABLE);
 
     /*
     GAME STARTED
@@ -457,7 +461,8 @@ int HOST(string playerName, UdpSocket *socket, bool *playAgain) {
                         players[playerNum].update(jData["xbutton"], jData["ybutton"], &bullets, players, &messages);
                         if (jData["lmpr"]) {
                             int tempMPos[2] = {jData["mp1"], jData["mp2"]};
-                            players[playerNum].shoot(&bullets, tempMPos, SCREEN_DIFF, true);
+                            float scrDiff[2] = {jData["scrDiff1"], jData["scrDiff2"]};
+                            players[playerNum].shoot(&bullets, tempMPos, scrDiff, true);
                         }
                     }
                     ports.push_back(rPort);
@@ -787,13 +792,14 @@ int CLIENT(string addr, string port, string name, UdpSocket *socket, string *pla
     /*
     GAME STARTED
     */
-    string lSurvivourString = allDiedStrings[rand()%(allDiedStrings.size() - 1)];
-    string oneSurvivedString = oneSurvived[rand()%(oneSurvived.size() - 1)];
+    string lSurvivourString = allDiedStrings[rand()%allDiedStrings.size()];
+    string oneSurvivedString = oneSurvived[rand()%oneSurvived.size()];
 
     bool pausePressed = false;
     int pauseCurrentOption = 0;
 
     Messages messages;
+    SDL_ShowCursor(SDL_ENABLE);
 
     while (run) {
         fStart = SDL_GetTicks();
@@ -928,7 +934,9 @@ int CLIENT(string addr, string port, string name, UdpSocket *socket, string *pla
             {"ybutton", ybutton},
             {"lmpr", lmpr},
             {"mp1", mPos[0]},
-            {"mp2", mPos[1]}
+            {"mp2", mPos[1]},
+            {"scrDiff1", SCREEN_DIFF[0]},
+            {"scrDiff2", SCREEN_DIFF[1]}
         };
         string sData = jsData.dump();
         socket->send(sData.c_str(), 4096, ADDRESS, PORT);
@@ -1036,12 +1044,14 @@ int main (int argc, char **argv) {
     socket.bind(Socket::AnyPort);
     socket.setBlocking(false);
 
+    SDL_ShowCursor(SDL_DISABLE);
+
     string playerName, port, address, playAgainAddress = "^", playAgainPort = "^";
     bool playAgain = false;
     menu::drawTitle(ren, titleFont, SCREEN_SIZE, SCREEN_DIFF);
 
     while (true) {
-        
+        SDL_ShowCursor(SDL_DISABLE);
         if (!playAgain) {
             int menuRes = menu::main_menu(ren, &address, &port, &playerName, menuOptionFont, SCREEN_SIZE, SCREEN_DIFF);
             if (menuRes == -1) {

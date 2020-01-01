@@ -65,8 +65,16 @@ namespace menu {
         int currentOption = 0;
         bool shiftPressed = false;
 
+        const auto modkeys = KMOD_CAPS | KMOD_RSHIFT | KMOD_LSHIFT;
+
         while(run) {
             fStart = SDL_GetTicks();
+            if (SDL_GetModState()&modkeys) {
+                shiftPressed = true;
+            }
+            else {
+                shiftPressed = false;
+            }
             while (SDL_PollEvent(&e) != 0) {
                 if (e.type == SDL_QUIT) {
                         return -1;
@@ -83,9 +91,6 @@ namespace menu {
                         if (currentOption == 3) {
                             currentOption = 0;
                         }
-                    }
-                    if (e.key.keysym.sym == SDLK_LSHIFT) {
-                        shiftPressed = true;
                     }
                     if (currentOption == 0) {
                         char symbol = getSymbol(e, shiftPressed);
@@ -106,11 +111,6 @@ namespace menu {
                     }
                     if (e.key.keysym.sym == SDLK_ESCAPE) {
                         return 0;
-                    }
-                }
-                if (e.type == SDL_KEYUP) {
-                    if (e.key.keysym.sym == SDLK_LSHIFT) {
-                        shiftPressed = false;
                     }
                 }
             }
@@ -146,8 +146,17 @@ namespace menu {
         long int fStart, fEnd;
 
         bool shiftPressed = false;
+        const auto modkeys = KMOD_CAPS | KMOD_RSHIFT | KMOD_LSHIFT;
+
+        
         while (run) {
             fStart = SDL_GetTicks();
+            if (SDL_GetModState()&modkeys) {
+                shiftPressed = true;
+            }
+            else {
+                shiftPressed = false;
+            }
 
             while (SDL_PollEvent(&e) != 0) {
                 if (e.type == SDL_QUIT) {
@@ -176,9 +185,6 @@ namespace menu {
                     }
                     if (e.key.keysym.sym == SDLK_ESCAPE) {
                         return 2;
-                    }
-                    if (e.key.keysym.sym == SDLK_LSHIFT) {
-                        shiftPressed = true;
                     }
                     if (currentOption == 0) {
                         char symbol = getSymbol(e, shiftPressed);
@@ -209,11 +215,6 @@ namespace menu {
                             if (NAME->size() > 0) {NAME->resize(NAME->size() - 1);}
                         }
                         optionsAddOns[2] = *NAME;
-                    }
-                }
-                if (e.type == SDL_KEYUP) {
-                    if (e.key.keysym.sym == SDLK_LSHIFT) {
-                        shiftPressed = false;
                     }
                 }
             }
@@ -309,7 +310,7 @@ namespace menu {
     void drawPause(SDL_Renderer *ren, int pauseIptionNum, Font *font, int SCREEN_SIZE[2], float SCREEN_DIFF[2]) {
         vector<string> options {"CONTINUE", "EXIT"};
         vector<string> optionsAddOns = {"", ""};
-        SDL_SetRenderDrawColor(ren, 0, 0, 0, 150);
+        SDL_SetRenderDrawColor(ren, 0, 0, 0, 200);
         SDL_Rect blackRect = {0, 0, SCREEN_SIZE[0], SCREEN_SIZE[1]};
         SDL_RenderFillRect(ren, &blackRect);
         draw_options(ren, options, optionsAddOns, pauseIptionNum, font, SCREEN_SIZE, SCREEN_DIFF);
@@ -323,7 +324,7 @@ namespace menu {
         titleFont->getSize("LLEMOON", &textSize[0], &textSize[1]);
         int fTime = 1000 / 60, fDelta = 0;
         long int fStart, fEnd;
-        int frameCount;
+        int frameCount = 0;
         int alpha = 255;
         SDL_Texture *titleTextue = NULL;
 
@@ -334,7 +335,6 @@ namespace menu {
                 textSize[0],
                 textSize[1],
             };
-        SDL_ShowCursor(SDL_DISABLE);
         while(run) {
             fStart = SDL_GetTicks();
             while (SDL_PollEvent(&e) != 0) {
@@ -366,8 +366,6 @@ namespace menu {
                 SDL_Delay(fTime - fDelta);
             }
         }
-
-        SDL_ShowCursor(SDL_ENABLE);
 
     }
 
