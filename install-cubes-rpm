@@ -1,0 +1,6 @@
+#!/bin/bash
+
+sudo yum install SDL2-devel
+sudo yum install SDL2_ttf
+sudo yum install SFML
+echo -e "Ready to go!"
