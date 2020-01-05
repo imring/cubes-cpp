@@ -1,9 +1,8 @@
-#ifndef STRINGS_H
-#define STRINGS_H
+#include "main.hpp"
 
-#include <vector>
+unsigned int count_players = 0UL;
 
-const std::vector<string> aviableNamesForBots = {
+const std::vector<std::string> aviableNamesForBots = {
 	"Liam",
 	"Noah",
 	"James",
@@ -82,19 +81,10 @@ const std::vector<string> aviableNamesForBots = {
 	"Maliah"
 };
 
-const std::vector <string> allDiedStrings = {
-	" was the last survivour",
-	" caught the bullet at the last moment",
-	" died after all",
-	", I'm so sorry",
-	" was good"
-};
-
-const std::vector <string> oneSurvived = {
-	" is hero of the day",
-	" won!",
-	" gets a prize",
-	" was too aggressive!"
+Player::Player(const std::string &nickname)
+	: name(nickname.empty() ? aviableNamesForBots[rd::integral(0UL, aviableNamesForBots.size() - 1)] : nickname)
+	, id_color(100 + ++count_players)
+	, lifes(3)
+{
+    Color::CreateColor(id_color);
 }
-#endif
-
