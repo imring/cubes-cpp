@@ -50,7 +50,7 @@ bool Menu::DrawTitle(const std::vector<sf::Event> &events) {
 
 void Menu::DrawMainMenu(const std::vector<sf::Event> &events) {
     static std::vector<std::string> options = {"CREATE HOST", "CONNECT", "EXIT"};
-    static int current_menu = 0;
+    static unsigned int current_menu = 0;
     
     switch(DrawOptions(events, options, current_menu)) {
     case MainMenu::NewHost:
@@ -65,14 +65,14 @@ void Menu::DrawMainMenu(const std::vector<sf::Event> &events) {
     }
 }
 
-int Menu::DrawOptions(const std::vector<sf::Event> &events, std::vector<std::string> options, int &currentOption) {
+int Menu::DrawOptions(const std::vector<sf::Event> &events, std::vector<std::string> options, unsigned int &currentOption) {
     sf::Text option;
     option.setFont(mainFont);
     option.setCharacterSize(screen_diff[1] * 35.f);
     sf::Color menuColor = Color::GetColor(1);
     Color::UpdateColor(1);
 
-    for(int i = 0; i < options.size(); ++i) {
+    for(size_t i = 0; i < options.size(); ++i) {
         option.setPosition(sf::Vector2f(50, size_window[1] - screen_diff[1] * ( 20 + ( options.size() - i ) * 50 ) ));
         option.setString(sf::String(options[i]));
         option.setColor(i == currentOption ? menuColor : sf::Color(120, 120, 120));
@@ -91,6 +91,8 @@ int Menu::DrawOptions(const std::vector<sf::Event> &events, std::vector<std::str
                 break;
             case sf::Keyboard::Enter:
                 return currentOption;
+            
+            default: break;
             }
         }
     }
@@ -99,7 +101,7 @@ int Menu::DrawOptions(const std::vector<sf::Event> &events, std::vector<std::str
 
 void Menu::DrawCreateHost(const std::vector<sf::Event> &events, Player *localPlayer) {
     static std::vector<std::string> options = {"NAME: ", "CREATE HOST", "BACK"};
-    static int current_menu = 0;
+    static unsigned int current_menu = 0;
 
     auto tempoptions = options;
     tempoptions[0] += localPlayer->name;
@@ -116,6 +118,8 @@ void Menu::DrawCreateHost(const std::vector<sf::Event> &events, Player *localPla
             if(current_menu == 0 && symbolsAllowedForName.find(event.text.unicode) != std::string::npos && event.text.unicode < 0x80 && localPlayer->name.size() <= 12)
                 localPlayer->name += event.text.unicode;
             break;
+
+        default: break;
         }
     }
 

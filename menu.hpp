@@ -12,6 +12,6 @@ namespace Menu {
 
     bool DrawTitle(const std::vector<sf::Event> &events);
     void DrawMainMenu(const std::vector<sf::Event> &events);
-    int DrawOptions(const std::vector<sf::Event> &events, std::vector<std::string> options, int &currentOption);
+    int DrawOptions(const std::vector<sf::Event> &events, std::vector<std::string> options, unsigned int &currentOption);
     void DrawCreateHost(const std::vector<sf::Event> &events, Player *localPlayer);
 };

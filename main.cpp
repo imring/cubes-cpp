@@ -26,9 +26,6 @@ int main() {
 
     if(!mainFont.loadFromFile("fonts/FONT.ttf")) return 0;
 
-    static sf::Time time = sf::milliseconds(30);
-    bool shost = false, sconn = false;
-
     Player *localPlayer = new Player();
 
     while(window.isOpen()) {
